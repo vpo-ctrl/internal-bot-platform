@@ -12,6 +12,8 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 // Load configuration
 const CONFIG = JSON.parse(fs.readFileSync(
@@ -28,6 +30,20 @@ const calendarBot = require('../bots/calendar-bot.js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Email configuration
+const emailConfig = {
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER || 'noreply@amhostels.com',
+    pass: process.env.EMAIL_PASSWORD || ''
+  }
+};
+
+const transporter = nodemailer.createTransport(emailConfig);
+
+// Store reset tokens (in production, use database)
+const resetTokens = new Map();
 
 // Middleware
 app.use(express.json());
@@ -91,6 +107,148 @@ app.post('/api/auth/login', (req, res) => {
     });
   } catch (error) {
     log(`❌ Login error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Forgot password endpoint
+ */
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ error: 'Username required' });
+    }
+
+    const user = USERS[username];
+    if (!user) {
+      // Don't reveal if user exists
+      return res.json({ 
+        success: true, 
+        message: 'If account exists, reset link sent to registered email' 
+      });
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+    
+    // Store token with expiry (15 minutes)
+    resetTokens.set(resetHash, {
+      username,
+      expiresAt: Date.now() + 15 * 60 * 1000
+    });
+
+    // Create reset URL (for production, use your domain)
+    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3001'}/reset-password?token=${resetToken}`;
+
+    // Send email
+    const mailOptions = {
+      from: 'Internal Bot Platform <noreply@amhostels.com>',
+      to: process.env.ADMIN_EMAIL || 'almali@amhostels.com',
+      subject: '🔐 Password Reset Request - Internal Bot Platform',
+      html: `
+        <h2>Password Reset Request</h2>
+        <p>You requested a password reset for your account.</p>
+        <p>Click the link below to reset your password (valid for 15 minutes):</p>
+        <p><a href="${resetUrl}" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px;">Reset Password</a></p>
+        <p>Or copy this link: <code>${resetUrl}</code></p>
+        <p><small>If you didn't request this, ignore this email.</small></p>
+      `
+    };
+
+    // Send email (non-blocking)
+    if (process.env.EMAIL_PASSWORD) {
+      transporter.sendMail(mailOptions, (error) => {
+        if (error) {
+          log(`⚠️ Email send error: ${error.message}`);
+        } else {
+          log(`✅ Reset email sent to: ${process.env.ADMIN_EMAIL}`);
+        }
+      });
+    }
+
+    log(`✅ Password reset requested for: ${username}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Reset link sent to registered email' 
+    });
+  } catch (error) {
+    log(`❌ Forgot password error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Reset password endpoint
+ */
+app.post('/api/auth/reset-password', (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ error: 'Token and new password required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Hash token
+    const resetHash = crypto.createHash('sha256').update(token).digest('hex');
+    const resetData = resetTokens.get(resetHash);
+
+    if (!resetData) {
+      return res.status(401).json({ error: 'Invalid or expired reset token' });
+    }
+
+    if (resetData.expiresAt < Date.now()) {
+      resetTokens.delete(resetHash);
+      return res.status(401).json({ error: 'Reset token expired' });
+    }
+
+    // Update password
+    const username = resetData.username;
+    USERS[username].password = newPassword;
+
+    // Clear token
+    resetTokens.delete(resetHash);
+
+    log(`✅ Password reset for: ${username}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Password reset successfully. You can now login with your new password.' 
+    });
+  } catch (error) {
+    log(`❌ Reset password error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Verify reset token endpoint
+ */
+app.get('/api/auth/verify-reset-token', (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Token required' });
+    }
+
+    const resetHash = crypto.createHash('sha256').update(token).digest('hex');
+    const resetData = resetTokens.get(resetHash);
+
+    if (!resetData || resetData.expiresAt < Date.now()) {
+      return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+    }
+
+    res.json({ success: true, message: 'Token is valid' });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

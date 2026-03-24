@@ -7,10 +7,13 @@ function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState('login'); // 'login' or 'forgot'
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -34,44 +37,113 @@ function Login({ onLogin }) {
     }
   };
 
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    setResetMessage('');
+    setLoading(true);
+
+    try {
+      const response = await axios.post(`${API_URL}/api/auth/forgot-password`, {
+        username
+      });
+
+      setResetMessage('✅ If account exists, reset link has been sent to the registered email.');
+      setUsername('');
+      setTimeout(() => setMode('login'), 3000);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to process reset request.');
+      console.error('Forgot password error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="login-container">
       <div className="login-box">
         <h1>🎤 Internal Bot Platform</h1>
         <p className="subtitle">Secure Access Required</p>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
-              disabled={loading}
-            />
-          </div>
+        {mode === 'login' ? (
+          <form onSubmit={handleLogin}>
+            <div className="form-group">
+              <label htmlFor="username">Username</label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+                disabled={loading}
+              />
+            </div>
 
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              disabled={loading}
-              autoFocus
-            />
-          </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                disabled={loading}
+                autoFocus
+              />
+            </div>
 
-          {error && <div className="error-message">{error}</div>}
+            {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" disabled={loading} className="login-button">
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
+            <button type="submit" disabled={loading} className="login-button">
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMode('forgot');
+                setError('');
+              }}
+              className="forgot-link"
+            >
+              Forgot password?
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleForgotPassword}>
+            <div className="form-group">
+              <label htmlFor="reset-username">Username</label>
+              <input
+                id="reset-username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
+                disabled={loading}
+                autoFocus
+              />
+            </div>
+
+            {error && <div className="error-message">{error}</div>}
+            {resetMessage && <div className="success-message">{resetMessage}</div>}
+
+            <button type="submit" disabled={loading} className="login-button">
+              {loading ? 'Sending reset link...' : 'Send Reset Link'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMode('login');
+                setError('');
+                setResetMessage('');
+              }}
+              className="forgot-link"
+            >
+              Back to login
+            </button>
+          </form>
+        )}
 
         <div className="login-footer">
           <p>🔒 Encrypted connection required</p>

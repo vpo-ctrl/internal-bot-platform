@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import ResetPassword from './pages/ResetPassword';
 import './App.css';
 
 function App() {
@@ -35,13 +37,26 @@ function App() {
   }
 
   return (
-    <div className="app">
-      {isLoggedIn ? (
-        <Dashboard token={token} onLogout={handleLogout} />
-      ) : (
-        <Login onLogin={handleLogin} />
-      )}
-    </div>
+    <Router>
+      <div className="app">
+        <Routes>
+          <Route 
+            path="/reset-password" 
+            element={<ResetPassword />} 
+          />
+          <Route
+            path="/"
+            element={
+              isLoggedIn ? (
+                <Dashboard token={token} onLogout={handleLogout} />
+              ) : (
+                <Login onLogin={handleLogin} />
+              )
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
