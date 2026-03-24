@@ -66,7 +66,7 @@ function log(message) {
  */
 const USERS = {
   'almali': {
-    password: process.env.API_PASSWORD || 'change-me-2026',
+    password: 'Golden2020!@#general',
     name: 'Al Mal (VPO)'
   }
 };
