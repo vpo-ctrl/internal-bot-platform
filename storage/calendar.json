@@ -1,0 +1,35 @@
+{
+  "events": [
+    {
+      "id": "03d660a3f990",
+      "title": "FrontDesk meeting",
+      "date": "2026-03-25",
+      "time": "14:00",
+      "duration": 60,
+      "attendees": [],
+      "notes": "",
+      "created": "2026-03-24T09:51:30.606Z"
+    },
+    {
+      "id": "cc0f9c3aa625",
+      "title": "Schedule a meeting with Maki on Friday at 10 AM",
+      "date": null,
+      "time": null,
+      "duration": 60,
+      "attendees": [],
+      "notes": "Schedule a meeting with Maki on Friday at 10 AM",
+      "created": "2026-03-24T09:55:55.557Z"
+    },
+    {
+      "id": "bfdf693e3a4b",
+      "title": "Cinema occupancy is down 3% this week",
+      "date": null,
+      "time": null,
+      "duration": 60,
+      "attendees": [],
+      "notes": "Cinema occupancy is down 3% this week",
+      "created": "2026-03-24T09:55:55.606Z"
+    }
+  ],
+  "lastUpdated": "2026-03-24T09:55:55.606Z"
+}

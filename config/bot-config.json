@@ -1,0 +1,59 @@
+{
+  "project": "internal-bot-platform",
+  "version": "0.1.0",
+  "environment": "development",
+  "baseDir": "/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform",
+  "storage": {
+    "notesDir": "/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform/storage/notes",
+    "tasksFile": "/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform/storage/tasks.json",
+    "calendarFile": "/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform/storage/calendar.json"
+  },
+  "bots": {
+    "notes": {
+      "enabled": true,
+      "description": "Note taking and organization"
+    },
+    "tasks": {
+      "enabled": true,
+      "description": "Task management and tracking"
+    },
+    "calendar": {
+      "enabled": true,
+      "description": "Event and meeting scheduling"
+    },
+    "router": {
+      "enabled": true,
+      "description": "Voice intent routing and parsing"
+    },
+    "briefing": {
+      "enabled": true,
+      "description": "Daily summary and briefing"
+    }
+  },
+  "briefing": {
+    "cronTime": "0 9 * * *",
+    "cronDescription": "Daily at 9:00 AM",
+    "timezone": "Asia/Jerusalem",
+    "deliveryMethod": "telegram",
+    "recipient": "6311520638"
+  },
+  "whisper": {
+    "model": "base",
+    "language": "he",
+    "outputFormat": "json"
+  },
+  "router": {
+    "model": "claude-opus-4-6",
+    "temperature": 0.5,
+    "intents": [
+      "note",
+      "task",
+      "event",
+      "reminder"
+    ]
+  },
+  "logging": {
+    "level": "info",
+    "file": "/tmp/internal-bot-platform.log"
+  }
+}

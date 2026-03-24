@@ -1,0 +1,115 @@
+.notes-tab {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.notes-tab h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.add-note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.note-input {
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.3s;
+}
+
+.note-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.notes-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-input,
+.date-input {
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.search-input {
+  flex: 1;
+}
+
+.search-input:focus,
+.date-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.notes-list h3 {
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.note-item {
+  padding: 15px;
+  background: #f9f9f9;
+  border-left: 4px solid #667eea;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.note-item:hover {
+  background: #f0f0f0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.note-item h4 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 1.05rem;
+}
+
+.note-item p {
+  margin: 0 0 8px 0;
+  color: #666;
+  line-height: 1.4;
+}
+
+.note-item small {
+  color: #999;
+  font-size: 0.85rem;
+}
+
+.empty {
+  text-align: center;
+  color: #999;
+  padding: 30px;
+}
+
+@media (max-width: 768px) {
+  .notes-controls {
+    flex-direction: column;
+  }
+
+  .add-note-form {
+    flex-direction: column;
+  }
+}

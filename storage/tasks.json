@@ -1,0 +1,25 @@
+{
+  "tasks": [
+    {
+      "id": "0c51347b0b72",
+      "text": "Follow up with FrontDesk on occupancy",
+      "created": "2026-03-24T09:51:30.558Z",
+      "due": null,
+      "priority": "medium",
+      "status": "pending",
+      "tags": []
+    },
+    {
+      "id": "557054f9292e",
+      "text": "Remind me to check the worker count tomorrow",
+      "created": "2026-03-24T09:55:55.508Z",
+      "due": null,
+      "priority": "medium",
+      "status": "pending",
+      "tags": [
+        "general"
+      ]
+    }
+  ],
+  "lastUpdated": "2026-03-24T09:55:55.508Z"
+}

@@ -1,0 +1,172 @@
+.calendar-tab {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.calendar-tab h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.add-event-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.event-input,
+.date-input,
+.time-input {
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.event-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.date-input,
+.time-input {
+  flex: 0.5;
+  min-width: 120px;
+}
+
+.event-input:focus,
+.date-input:focus,
+.time-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.add-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s;
+}
+
+.add-btn:hover {
+  transform: translateY(-2px);
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.events-list h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+}
+
+.event-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-left: 4px solid #667eea;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.event-item:hover {
+  background: #f0f0f0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.event-item.today {
+  background: #e8f5e9;
+  border-left-color: #4caf50;
+}
+
+.event-item.past {
+  opacity: 0.6;
+  background: #f5f5f5;
+}
+
+.event-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 50px;
+  padding: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 6px;
+}
+
+.event-date .day {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.event-date .month {
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.event-content {
+  flex: 1;
+}
+
+.event-content h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 1.05rem;
+}
+
+.event-time,
+.event-attendees {
+  margin: 5px 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.delete-btn:hover {
+  transform: scale(1.2);
+}
+
+.empty {
+  text-align: center;
+  color: #999;
+  padding: 30px;
+}
+
+@media (max-width: 768px) {
+  .add-event-form {
+    flex-direction: column;
+  }
+
+  .date-input,
+  .time-input {
+    min-width: 100%;
+    flex: 1;
+  }
+
+  .event-item {
+    flex-direction: column;
+  }
+}
