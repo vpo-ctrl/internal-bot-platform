@@ -37,11 +37,17 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 
 // CORS middleware FIRST (before everything else!)
 app.use((req, res, next) => {
+  log(`📨 ${req.method} ${req.path} from ${req.get('origin')}`);
+  
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Max-Age', '3600');
+  
+  log(`✅ CORS headers set`);
   
   if (req.method === 'OPTIONS') {
+    log(`✅ OPTIONS request, sending 200`);
     return res.sendStatus(200);
   }
   next();
