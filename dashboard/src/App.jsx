@@ -16,6 +16,13 @@ function App() {
     if (savedToken) {
       setToken(savedToken);
       setIsLoggedIn(true);
+    } else {
+      // TEMPORARY: Auto-login for testing
+      const dummyToken = 'test-token-' + Date.now();
+      localStorage.setItem('token', dummyToken);
+      setToken(dummyToken);
+      setIsLoggedIn(true);
+      console.log('🧪 Test mode: Auto-logged in');
     }
     setLoading(false);
   }, []);
