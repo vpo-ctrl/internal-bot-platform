@@ -52,13 +52,7 @@ const resetTokens = new Map();
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: [
-    'http://localhost:3001', 
-    'http://localhost:3000', 
-    'https://internal-bot-platform.onrender.com',
-    'https://internal-bot-api-gbsx.onrender.com',
-    /\.onrender\.com$/
-  ],
+  origin: true, // Allow all origins for now (debug mode)
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
