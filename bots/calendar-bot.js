@@ -11,12 +11,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const CONFIG = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '../config/bot-config.json'),
-  'utf8'
-));
+const configPath = path.join(__dirname, '../config/bot-config.json');
+const CONFIG = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
-const CALENDAR_FILE = CONFIG.storage.calendarFile;
+// Resolve storage path relative to bot directory
+const CALENDAR_FILE = path.join(__dirname, '../storage/calendar.json');
 
 // Initialize calendar file if it doesn't exist
 function initCalendar() {

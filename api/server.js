@@ -16,10 +16,13 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 // Load configuration
-const CONFIG = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '../config/bot-config.json'),
-  'utf8'
-));
+const configPath = path.join(__dirname, '../config/bot-config.json');
+const CONFIG = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+
+// Resolve storage paths relative to api directory
+CONFIG.storage.notesDir = path.join(__dirname, '../storage/notes');
+CONFIG.storage.tasksFile = path.join(__dirname, '../storage/tasks.json');
+CONFIG.storage.calendarFile = path.join(__dirname, '../storage/calendar.json');
 
 // Import bot modules
 const taskBot = require('../bots/task-bot.js');

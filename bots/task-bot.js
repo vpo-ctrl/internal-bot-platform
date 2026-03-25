@@ -11,12 +11,11 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const CONFIG = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '../config/bot-config.json'),
-  'utf8'
-));
+const configPath = path.join(__dirname, '../config/bot-config.json');
+const CONFIG = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
-const TASKS_FILE = CONFIG.storage.tasksFile;
+// Resolve storage path relative to bot directory
+const TASKS_FILE = path.join(__dirname, '../storage/tasks.json');
 
 // Initialize tasks file if it doesn't exist
 function initTasks() {

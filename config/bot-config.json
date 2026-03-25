@@ -4,9 +4,9 @@
   "environment": "development",
   "baseDir": "/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform",
   "storage": {
-    "notesDir": "/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform/storage/notes",
-    "tasksFile": "/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform/storage/tasks.json",
-    "calendarFile": "/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform/storage/calendar.json"
+    "notesDir": "./storage/notes",
+    "tasksFile": "./storage/tasks.json",
+    "calendarFile": "./storage/calendar.json"
   },
   "bots": {
     "notes": {

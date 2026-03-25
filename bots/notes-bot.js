@@ -10,12 +10,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const CONFIG = JSON.parse(fs.readFileSync(
-  path.join(__dirname, '../config/bot-config.json'),
-  'utf8'
-));
+const configPath = path.join(__dirname, '../config/bot-config.json');
+const CONFIG = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
-const NOTES_DIR = CONFIG.storage.notesDir;
+// Resolve storage path relative to bot directory
+const NOTES_DIR = path.join(__dirname, '../storage/notes');
 
 // Ensure notes directory exists
 if (!fs.existsSync(NOTES_DIR)) {
