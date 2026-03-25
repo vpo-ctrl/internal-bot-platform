@@ -11,7 +11,13 @@ function Login({ onLogin }) {
   const [resetEmail, setResetEmail] = useState('');
   const [resetMessage, setResetMessage] = useState('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_URL = import.meta.env.VITE_API_URL || 'https://internal-bot-api-gbsx.onrender.com';
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔍 API URL:', API_URL);
+    console.log('🔍 VITE_API_URL env:', import.meta.env.VITE_API_URL);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -19,19 +25,28 @@ function Login({ onLogin }) {
     setLoading(true);
 
     try {
+      console.log('📤 Sending login request to:', `${API_URL}/api/auth/login`);
+      console.log('👤 Username:', username);
+      
       const response = await axios.post(`${API_URL}/api/auth/login`, {
         username,
         password
       });
 
+      console.log('✅ Login successful:', response.data);
+      
       if (response.data.token) {
         onLogin(response.data.token);
       } else {
         setError('Login failed: No token received');
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed. Check your credentials.');
-      console.error('Login error:', err);
+      console.error('❌ Login error:', err);
+      console.error('Error response:', err.response?.data);
+      console.error('Error status:', err.response?.status);
+      console.error('Error message:', err.message);
+      
+      setError(err.response?.data?.error || err.message || 'Login failed. Check your credentials.');
     } finally {
       setLoading(false);
     }
