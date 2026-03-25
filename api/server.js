@@ -28,6 +28,7 @@ CONFIG.storage.calendarFile = path.join(__dirname, '../storage/calendar.json');
 const taskBot = require('../bots/task-bot.js');
 const notesBot = require('../bots/notes-bot.js');
 const calendarBot = require('../bots/calendar-bot.js');
+const { connectDB } = require('../bots/db-connection.js');
 
 // Initialize Express
 const app = express();
@@ -559,11 +560,21 @@ app.use((req, res) => {
 // START SERVER
 // ============================================
 
-app.listen(PORT, '0.0.0.0', () => {
-  log(`🚀 API Server started on port ${PORT}`);
-  log(`📍 Access at: http://localhost:${PORT}`);
-  log(`🔐 Authentication: JWT (login required)`);
-  log(`✅ Ready for connections`);
-});
+(async () => {
+  try {
+    await connectDB();
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      log(`🚀 API Server started on port ${PORT}`);
+      log(`📍 Access at: http://localhost:${PORT}`);
+      log(`🔐 Authentication: JWT (login required)`);
+      log(`🗄️  Database: MongoDB Atlas connected`);
+      log(`✅ Ready for connections`);
+    });
+  } catch (error) {
+    log(`❌ Failed to start server: ${error.message}`);
+    process.exit(1);
+  }
+})();
 
 module.exports = app;

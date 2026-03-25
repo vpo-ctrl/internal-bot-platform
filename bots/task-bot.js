@@ -1,88 +1,42 @@
 #!/usr/bin/env node
 /**
- * Task Bot
+ * Task Bot - MongoDB Version
  * 
  * Purpose: Manage tasks with due dates, priorities, and status
- * Storage: JSON file with task array
+ * Storage: MongoDB (persistent cloud database)
  * Interface: add-task, list-tasks, complete-task, delete-task
  */
 
-const fs = require('fs');
-const path = require('path');
 const crypto = require('crypto');
-
-const configPath = path.join(__dirname, '../config/bot-config.json');
-const CONFIG = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-
-// Resolve storage path relative to bot directory
-const TASKS_FILE = path.join(__dirname, '../storage/tasks.json');
-
-// Initialize tasks file if it doesn't exist
-function initTasks() {
-  if (!fs.existsSync(TASKS_FILE)) {
-    const initialTasks = { tasks: [], lastUpdated: new Date().toISOString() };
-    fs.writeFileSync(TASKS_FILE, JSON.stringify(initialTasks, null, 2), 'utf8');
-  }
-}
-
-initTasks();
+const { connectDB } = require('./db-connection');
+const { Task } = require('./schemas');
 
 function log(message) {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] [Task Bot] ${message}`);
-  fs.appendFileSync(
-    CONFIG.logging.file,
-    `[${timestamp}] [Task Bot] ${message}\n`
-  );
-}
-
-/**
- * Load tasks from file
- */
-function loadTasks() {
-  try {
-    const content = fs.readFileSync(TASKS_FILE, 'utf8');
-    return JSON.parse(content);
-  } catch (error) {
-    log(`⚠️  Error loading tasks: ${error.message}`);
-    return { tasks: [], lastUpdated: new Date().toISOString() };
-  }
-}
-
-/**
- * Save tasks to file
- */
-function saveTasks(data) {
-  try {
-    data.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(TASKS_FILE, JSON.stringify(data, null, 2), 'utf8');
-    log(`✅ Tasks saved (${data.tasks.length} tasks)`);
-  } catch (error) {
-    log(`❌ Error saving tasks: ${error.message}`);
-  }
 }
 
 /**
  * Add a task
  */
-function addTask(text, due = null, priority = 'medium', tags = []) {
+async function addTask(text, due = null, priority = 'medium', tags = []) {
   try {
-    const tasks = loadTasks();
+    await connectDB();
+
     const taskId = crypto.randomBytes(6).toString('hex');
-    
-    const newTask = {
+
+    const newTask = new Task({
       id: taskId,
       text: text,
-      created: new Date().toISOString(),
+      created: new Date(),
       due: due || null,
-      priority: priority, // high, medium, low
-      status: 'pending', // pending, in-progress, done
+      priority: priority,
+      status: 'pending',
       tags: tags
-    };
-    
-    tasks.tasks.push(newTask);
-    saveTasks(tasks);
-    
+    });
+
+    await newTask.save();
+
     log(`✅ Task added: "${text}" (priority: ${priority})`);
     return { success: true, taskId, task: newTask };
   } catch (error) {
@@ -94,37 +48,27 @@ function addTask(text, due = null, priority = 'medium', tags = []) {
 /**
  * List tasks with filters
  */
-function listTasks(filters = {}) {
+async function listTasks(filters = {}) {
   try {
-    const tasks = loadTasks();
-    let filtered = tasks.tasks;
-    
-    // Filter by status
+    await connectDB();
+
+    let query = {};
+
     if (filters.status) {
-      filtered = filtered.filter(t => t.status === filters.status);
+      query.status = filters.status;
     }
-    
-    // Filter by priority
+
     if (filters.priority) {
-      filtered = filtered.filter(t => t.priority === filters.priority);
+      query.priority = filters.priority;
     }
-    
-    // Filter by due date
-    if (filters.due) {
-      filtered = filtered.filter(t => t.due === filters.due);
-    }
-    
-    // Sort by priority (high → medium → low) and due date
-    const priorityOrder = { high: 0, medium: 1, low: 2 };
-    filtered.sort((a, b) => {
-      if (a.priority !== b.priority) {
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
-      }
-      return (a.due || '9999-12-31').localeCompare(b.due || '9999-12-31');
+
+    const tasks = await Task.find(query).sort({
+      priority: -1,
+      due: 1
     });
-    
-    log(`✅ Listed ${filtered.length} tasks`);
-    return { success: true, tasks: filtered, filters };
+
+    log(`✅ Listed ${tasks.length} tasks`);
+    return { success: true, tasks, filters };
   } catch (error) {
     log(`❌ Error listing tasks: ${error.message}`);
     return { success: false, error: error.message };
@@ -134,19 +78,21 @@ function listTasks(filters = {}) {
 /**
  * Complete a task
  */
-function completeTask(taskId) {
+async function completeTask(taskId) {
   try {
-    const tasks = loadTasks();
-    const task = tasks.tasks.find(t => t.id === taskId);
-    
+    await connectDB();
+
+    const task = await Task.findOneAndUpdate(
+      { id: taskId },
+      { status: 'done' },
+      { new: true }
+    );
+
     if (!task) {
-      log(`⚠️  Task not found: ${taskId}`);
+      log(`⚠️ Task not found: ${taskId}`);
       return { success: false, error: 'Task not found' };
     }
-    
-    task.status = 'done';
-    saveTasks(tasks);
-    
+
     log(`✅ Task completed: "${task.text}"`);
     return { success: true, task };
   } catch (error) {
@@ -158,22 +104,19 @@ function completeTask(taskId) {
 /**
  * Delete a task
  */
-function deleteTask(taskId) {
+async function deleteTask(taskId) {
   try {
-    const tasks = loadTasks();
-    const index = tasks.tasks.findIndex(t => t.id === taskId);
-    
-    if (index === -1) {
-      log(`⚠️  Task not found: ${taskId}`);
+    await connectDB();
+
+    const task = await Task.findOneAndDelete({ id: taskId });
+
+    if (!task) {
+      log(`⚠️ Task not found: ${taskId}`);
       return { success: false, error: 'Task not found' };
     }
-    
-    const deleted = tasks.tasks[index];
-    tasks.tasks.splice(index, 1);
-    saveTasks(tasks);
-    
-    log(`✅ Task deleted: "${deleted.text}"`);
-    return { success: true, task: deleted };
+
+    log(`✅ Task deleted: "${task.text}"`);
+    return { success: true, task };
   } catch (error) {
     log(`❌ Error deleting task: ${error.message}`);
     return { success: false, error: error.message };
@@ -181,23 +124,24 @@ function deleteTask(taskId) {
 }
 
 /**
- * Get pending tasks for today/overdue
+ * Get pending tasks
  */
-function getPending() {
+async function getPending() {
   try {
+    await connectDB();
+
     const today = new Date().toISOString().split('T')[0];
-    const tasks = loadTasks();
-    
-    const pending = tasks.tasks.filter(t => 
-      t.status === 'pending' && 
-      (!t.due || t.due <= today)
-    ).sort((a, b) => {
-      const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    });
-    
-    log(`✅ Retrieved ${pending.length} pending/overdue tasks`);
-    return { success: true, tasks: pending, today };
+
+    const tasks = await Task.find({
+      status: 'pending',
+      $or: [
+        { due: { $lte: today } },
+        { due: null }
+      ]
+    }).sort({ priority: -1 });
+
+    log(`✅ Retrieved ${tasks.length} pending/overdue tasks`);
+    return { success: true, tasks, today };
   } catch (error) {
     log(`❌ Error getting pending tasks: ${error.message}`);
     return { success: false, error: error.message };
@@ -208,26 +152,33 @@ function getPending() {
 if (require.main === module) {
   const args = process.argv.slice(2);
   const command = args[0];
-  
+
   log('🤖 Task Bot started');
-  
-  if (command === 'add' && args[1]) {
-    const text = args.slice(1).join(' ');
-    addTask(text);
-  } else if (command === 'list') {
-    const filters = {};
-    if (args[1] === '--status' && args[2]) filters.status = args[2];
-    if (args[1] === '--priority' && args[2]) filters.priority = args[2];
-    listTasks(filters);
-  } else if (command === 'complete' && args[1]) {
-    completeTask(args[1]);
-  } else if (command === 'delete' && args[1]) {
-    deleteTask(args[1]);
-  } else if (command === 'pending') {
-    getPending();
-  } else {
-    console.log(`
-Task Bot — CLI Interface
+
+  (async () => {
+    try {
+      if (command === 'add' && args[1]) {
+        const text = args.slice(1).join(' ');
+        const result = await addTask(text);
+        console.log('\n✅ Task added:', result.task);
+      } else if (command === 'list') {
+        const filters = {};
+        if (args[1] === '--status' && args[2]) filters.status = args[2];
+        if (args[1] === '--priority' && args[2]) filters.priority = args[2];
+        const result = await listTasks(filters);
+        console.log('\n✅ Tasks:', result.tasks);
+      } else if (command === 'complete' && args[1]) {
+        const result = await completeTask(args[1]);
+        console.log('\n✅ Result:', result.task);
+      } else if (command === 'delete' && args[1]) {
+        const result = await deleteTask(args[1]);
+        console.log('\n✅ Deleted:', result.task);
+      } else if (command === 'pending') {
+        const result = await getPending();
+        console.log('\n✅ Pending tasks:', result.tasks);
+      } else {
+        console.log(`
+Task Bot — MongoDB CLI Interface
 
 Commands:
   add <text>              Add a task
@@ -235,13 +186,12 @@ Commands:
   complete <taskId>       Mark task done
   delete <taskId>         Delete a task
   pending                 Show pending/overdue
-
-Examples:
-  node task-bot.js add "Follow up with FrontDesk"
-  node task-bot.js list --status pending
-  node task-bot.js pending
-    `);
-  }
+        `);
+      }
+    } catch (error) {
+      console.error('Error:', error.message);
+    }
+  })();
 }
 
 module.exports = {
@@ -249,7 +199,5 @@ module.exports = {
   listTasks,
   completeTask,
   deleteTask,
-  getPending,
-  loadTasks,
-  saveTasks
+  getPending
 };
