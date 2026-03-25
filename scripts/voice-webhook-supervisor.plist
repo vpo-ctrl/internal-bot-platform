@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTDs PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.amhostels.voice-webhook</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/local/bin/node</string>
+		<string>/Users/adiramsalem/.openclaw/workspace-alon/internal-bot-platform/router/voice-webhook.js</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/tmp/voice-webhook.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/voice-webhook-error.log</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>TELEGRAM_BOT_TOKEN</key>
+		<string>YOUR_BOT_TOKEN_HERE</string>
+		<key>API_URL</key>
+		<string>http://localhost:3000</string>
+		<key>API_AUTH_TOKEN</key>
+		<string>YOUR_JWT_TOKEN_HERE</string>
+		<key>WEBHOOK_PORT</key>
+		<string>8001</string>
+		<key>PATH</key>
+		<string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>ProcessType</key>
+	<string>Adaptive</string>
+</dict>
+</plist>

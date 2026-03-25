@@ -25,6 +25,98 @@ function log(message) {
 }
 
 /**
+ * Parse voice intent with full structured output
+ */
+function parseVoiceIntent(transcript) {
+  const lower = transcript.toLowerCase();
+  
+  // Determine type (task, note, event)
+  let type = 'task'; // default
+  if (lower.includes('note') || lower.includes('remember') || lower.includes('save')) {
+    type = 'note';
+  } else if (lower.includes('event') || lower.includes('schedule') || lower.includes('meeting') || lower.includes('tomorrow') || lower.includes('next') || lower.includes('o\'clock') || /\d{1,2}(?:am|pm|:)/i.test(transcript)) {
+    type = 'event';
+  } else if (lower.includes('task') || lower.includes('todo') || lower.includes('do') || lower.includes('buy') || lower.includes('call')) {
+    type = 'task';
+  }
+
+  // Extract action
+  let action = 'create';
+  if (lower.includes('complete') || lower.includes('done') || lower.includes('finished')) {
+    action = 'complete';
+  } else if (lower.includes('delete') || lower.includes('remove') || lower.includes('cancel')) {
+    action = 'delete';
+  }
+
+  // Extract priority
+  let priority = 'normal';
+  if (lower.includes('urgent') || lower.includes('asap') || lower.includes('important')) {
+    priority = 'high';
+  } else if (lower.includes('low') || lower.includes('whenever')) {
+    priority = 'low';
+  }
+
+  // Extract tags
+  const tags = [];
+  if (lower.includes('work') || lower.includes('office')) tags.push('work');
+  if (lower.includes('personal') || lower.includes('home')) tags.push('personal');
+  if (lower.includes('urgent')) tags.push('urgent');
+
+  // Extract title (first 50 chars or full text)
+  let title = transcript.replace(/^(task|note|event|remember|schedule|remind me)\s+/i, '').trim();
+  title = title.replace(/^(to|that|about|me)\s+/i, '').trim();
+  if (title.length > 100) {
+    title = title.substring(0, 100) + '...';
+  }
+
+  // Extract date (simple patterns)
+  let date = null;
+  const datePatterns = {
+    'today': () => new Date().toISOString().split('T')[0],
+    'tomorrow': () => {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      return d.toISOString().split('T')[0];
+    },
+    'next week': () => {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      return d.toISOString().split('T')[0];
+    }
+  };
+  
+  for (const [pattern, fn] of Object.entries(datePatterns)) {
+    if (lower.includes(pattern)) {
+      date = fn();
+      break;
+    }
+  }
+
+  // Extract time (simple patterns)
+  let time = null;
+  const timeMatch = transcript.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)?/i);
+  if (timeMatch) {
+    const hour = parseInt(timeMatch[1]);
+    const minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    const ampm = timeMatch[3] ? timeMatch[3].toLowerCase() : null;
+    const finalHour = ampm === 'pm' && hour !== 12 ? hour + 12 : (ampm === 'am' && hour === 12 ? 0 : hour);
+    time = `${String(finalHour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  }
+
+  return {
+    type,
+    action,
+    title,
+    description: transcript,
+    tags,
+    date,
+    time,
+    priority,
+    confidence: 0.8 // voice has inherent uncertainty
+  };
+}
+
+/**
  * Detect intent from transcript using heuristics
  */
 function detectIntent(transcript) {
@@ -180,5 +272,6 @@ Examples:
 module.exports = {
   detectIntent,
   extractTags,
-  processTranscript
+  processTranscript,
+  parseVoiceIntent
 };
