@@ -562,21 +562,19 @@ app.use((req, res) => {
 // START SERVER
 // ============================================
 
-(async () => {
-  try {
-    await connectDB();
-    
-    app.listen(PORT, '0.0.0.0', () => {
-      log(`🚀 API Server started on port ${PORT}`);
-      log(`📍 Access at: http://localhost:${PORT}`);
-      log(`🔐 Authentication: JWT (login required)`);
-      log(`🗄️  Database: MongoDB Atlas connected`);
-      log(`✅ Ready for connections`);
-    });
-  } catch (error) {
-    log(`❌ Failed to start server: ${error.message}`);
-    process.exit(1);
-  }
-})();
+app.listen(PORT, '0.0.0.0', () => {
+  log(`🚀 API Server started on port ${PORT}`);
+  log(`📍 Access at: http://localhost:${PORT}`);
+  log(`🔐 Authentication: JWT (login required)`);
+  log(`✅ Ready for connections`);
+  
+  // Connect to MongoDB in background (non-blocking)
+  connectDB().then(() => {
+    log(`🗄️  Database: MongoDB Atlas connected`);
+  }).catch((error) => {
+    log(`⚠️  MongoDB connection failed: ${error.message}`);
+    log(`⚠️  Login will work, but tasks/notes/calendar may fail`);
+  });
+});
 
 module.exports = app;
