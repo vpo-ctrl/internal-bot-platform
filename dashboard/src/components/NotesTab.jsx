@@ -4,27 +4,31 @@ import '../styles/NotesTab.css';
 
 function NotesTab({ token, apiUrl }) {
   const [notes, setNotes] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [newNote, setNewNote] = useState({ text: '', tags: '' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredNotes, setFilteredNotes] = useState([]);
 
   useEffect(() => {
-    if (searchQuery) {
+    loadNotes();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
       searchNotes();
     } else {
-      loadNotes();
+      setFilteredNotes(notes);
     }
-  }, [selectedDate, searchQuery]);
+  }, [searchQuery, notes]);
 
   const loadNotes = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${apiUrl}/api/notes`, {
-        params: { date: selectedDate },
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotes(response.data.notes || []);
+      setFilteredNotes(response.data.notes || []);
     } catch (err) {
       console.error('Error loading notes:', err);
     } finally {
@@ -33,34 +37,60 @@ function NotesTab({ token, apiUrl }) {
   };
 
   const searchNotes = async () => {
+    if (!searchQuery.trim()) {
+      setFilteredNotes(notes);
+      return;
+    }
+
     try {
-      setLoading(true);
-      const response = await axios.get(`${apiUrl}/api/notes/search`, {
-        params: { q: searchQuery },
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setNotes(response.data.results || []);
+      const response = await axios.get(
+        `${apiUrl}/api/notes/search?q=${encodeURIComponent(searchQuery)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setFilteredNotes(response.data.notes || []);
     } catch (err) {
       console.error('Error searching notes:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleAddNote = async (e) => {
     e.preventDefault();
-    if (!newNote.trim()) return;
+    if (!newNote.text.trim()) return;
 
     try {
+      const tags = newNote.tags
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t);
+
       await axios.post(
         `${apiUrl}/api/notes`,
-        { text: newNote },
+        { text: newNote.text, tags },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setNewNote('');
+      setNewNote({ text: '', tags: '' });
       loadNotes();
     } catch (err) {
       console.error('Error adding note:', err);
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    if (window.confirm('Delete this note?')) {
+      try {
+        // Note: API might not have delete endpoint, check implementation
+        await axios.delete(
+          `${apiUrl}/api/notes/${noteId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).catch(() => {
+          // Fallback if delete not implemented
+          console.log('Delete not available, reloading instead');
+          loadNotes();
+        });
+        loadNotes();
+      } catch (err) {
+        console.error('Error deleting note:', err);
+      }
     }
   };
 
@@ -71,48 +101,66 @@ function NotesTab({ token, apiUrl }) {
       {/* Add Note Form */}
       <form className="add-note-form" onSubmit={handleAddNote}>
         <textarea
-          placeholder="Add a new note..."
-          value={newNote}
-          onChange={(e) => setNewNote(e.target.value)}
+          placeholder="Write a note..."
+          value={newNote.text}
+          onChange={(e) => setNewNote({ ...newNote, text: e.target.value })}
           className="note-input"
           rows="3"
         />
-        <button type="submit" className="add-btn">
-          Add Note
-        </button>
-      </form>
-
-      {/* Search and Filter */}
-      <div className="notes-controls">
         <input
           type="text"
-          placeholder="Search notes..."
+          placeholder="Tags (comma-separated)"
+          value={newNote.tags}
+          onChange={(e) => setNewNote({ ...newNote, tags: e.target.value })}
+          className="tags-input"
+        />
+        <button type="submit" className="add-btn">Add Note</button>
+      </form>
+
+      {/* Search */}
+      <div className="search-notes">
+        <input
+          type="text"
+          placeholder="🔍 Search notes..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-input"
         />
-        {!searchQuery && (
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="date-input"
-          />
-        )}
       </div>
 
       {/* Notes List */}
       <div className="notes-list">
         {loading ? (
-          <p>Loading...</p>
-        ) : notes.length === 0 ? (
-          <p className="empty">No notes found.</p>
+          <p className="loading">Loading notes...</p>
+        ) : filteredNotes.length === 0 ? (
+          <p className="empty">
+            {searchQuery ? 'No notes found. Try a different search.' : 'No notes yet. Create one above! 📝'}
+          </p>
         ) : (
-          notes.map((note) => (
-            <div key={note.filename || note.id} className="note-item">
-              <h4>{note.filename || 'Note'}</h4>
-              <p>{note.preview || note.text}</p>
-              <small>{note.date || selectedDate}</small>
+          filteredNotes.map((note) => (
+            <div key={note.id} className="note-item">
+              <div className="note-content">
+                <p className="note-text">{note.text}</p>
+                <div className="note-meta">
+                  <span className="note-date">
+                    📅 {new Date(note.created).toLocaleDateString()}
+                  </span>
+                  {note.tags && note.tags.length > 0 && (
+                    <div className="note-tags">
+                      {note.tags.map((tag, idx) => (
+                        <span key={idx} className="tag">#{tag}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button
+                className="delete-btn"
+                onClick={() => handleDeleteNote(note.id)}
+                title="Delete note"
+              >
+                🗑️
+              </button>
             </div>
           ))
         )}

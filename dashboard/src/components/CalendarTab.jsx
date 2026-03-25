@@ -5,12 +5,14 @@ import '../styles/CalendarTab.css';
 function CalendarTab({ token, apiUrl }) {
   const [events, setEvents] = useState([]);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState('month'); // 'week', 'month'
+  const [view, setView] = useState('month');
   const [newEvent, setNewEvent] = useState({
     title: '',
     date: new Date().toISOString().split('T')[0],
     time: '09:00'
   });
+  const [editingId, setEditingId] = useState(null);
+  const [editEvent, setEditEvent] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -49,6 +51,28 @@ function CalendarTab({ token, apiUrl }) {
       loadEvents();
     } catch (err) {
       console.error('Error adding event:', err);
+    }
+  };
+
+  const handleStartEdit = (event) => {
+    setEditingId(event.id);
+    setEditEvent({ ...event });
+  };
+
+  const handleSaveEdit = async (eventId) => {
+    try {
+      await axios.patch(
+        `${apiUrl}/api/calendar/${eventId}`,
+        {
+          date: editEvent.date,
+          time: editEvent.time
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEditingId(null);
+      loadEvents();
+    } catch (err) {
+      console.error('Error updating event:', err);
     }
   };
 
@@ -138,9 +162,7 @@ function CalendarTab({ token, apiUrl }) {
           onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
           className="time-input"
         />
-        <button type="submit" className="add-btn">
-          Add Event
-        </button>
+        <button type="submit" className="add-btn">Add Event</button>
       </form>
 
       {/* View Toggle */}
@@ -255,7 +277,7 @@ function CalendarTab({ token, apiUrl }) {
 
       {/* Events List */}
       <div className="events-list">
-        <h3>Upcoming Events</h3>
+        <h3>📋 Upcoming Events</h3>
         {loading ? (
           <p>Loading...</p>
         ) : sortedEvents.length === 0 ? (
@@ -271,18 +293,55 @@ function CalendarTab({ token, apiUrl }) {
                 <span className="month">{new Date(event.date).toLocaleDateString('en-US', { month: 'short' })}</span>
               </div>
               <div className="event-content">
-                <h4>{event.title}</h4>
-                {event.time && <p className="event-time">⏰ {event.time}</p>}
-                {event.attendees && event.attendees.length > 0 && (
-                  <p className="event-attendees">👥 {event.attendees.join(', ')}</p>
+                {editingId === event.id ? (
+                  <div className="edit-form">
+                    <input
+                      type="text"
+                      value={editEvent.title}
+                      onChange={(e) => setEditEvent({ ...editEvent, title: e.target.value })}
+                      className="edit-title"
+                    />
+                    <input
+                      type="date"
+                      value={editEvent.date}
+                      onChange={(e) => setEditEvent({ ...editEvent, date: e.target.value })}
+                      className="edit-date"
+                    />
+                    <input
+                      type="time"
+                      value={editEvent.time}
+                      onChange={(e) => setEditEvent({ ...editEvent, time: e.target.value })}
+                      className="edit-time"
+                    />
+                    <button onClick={() => handleSaveEdit(event.id)} className="save-btn">Save</button>
+                    <button onClick={() => setEditingId(null)} className="cancel-btn">Cancel</button>
+                  </div>
+                ) : (
+                  <>
+                    <h4>{event.title}</h4>
+                    {event.time && <p className="event-time">⏰ {event.time}</p>}
+                    {event.notes && <p className="event-notes">📝 {event.notes}</p>}
+                  </>
                 )}
               </div>
-              <button
-                className="delete-btn"
-                onClick={() => handleDeleteEvent(event.id)}
-              >
-                🗑️
-              </button>
+              {editingId !== event.id && (
+                <div className="event-actions">
+                  <button
+                    className="edit-btn"
+                    onClick={() => handleStartEdit(event)}
+                    title="Edit event"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className="delete-btn"
+                    onClick={() => handleDeleteEvent(event.id)}
+                    title="Delete event"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}

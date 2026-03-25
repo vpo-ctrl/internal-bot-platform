@@ -5,19 +5,18 @@ import '../styles/TasksTab.css';
 function TasksTab({ token, apiUrl }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [newTask, setNewTask] = useState('');
-  const [priority, setPriority] = useState('medium');
-  const [filterStatus, setFilterStatus] = useState('pending');
+  const [newTask, setNewTask] = useState({ text: '', priority: 'medium', due: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [editTask, setEditTask] = useState({});
 
   useEffect(() => {
     loadTasks();
-  }, [filterStatus]);
+  }, []);
 
   const loadTasks = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${apiUrl}/api/tasks`, {
-        params: { status: filterStatus },
         headers: { Authorization: `Bearer ${token}` }
       });
       setTasks(response.data.tasks || []);
@@ -30,19 +29,41 @@ function TasksTab({ token, apiUrl }) {
 
   const handleAddTask = async (e) => {
     e.preventDefault();
-    if (!newTask.trim()) return;
+    if (!newTask.text.trim()) return;
 
     try {
       await axios.post(
         `${apiUrl}/api/tasks`,
-        { text: newTask, priority },
+        {
+          text: newTask.text,
+          priority: newTask.priority,
+          due: newTask.due || null
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setNewTask('');
-      setPriority('medium');
+      setNewTask({ text: '', priority: 'medium', due: '' });
       loadTasks();
     } catch (err) {
       console.error('Error adding task:', err);
+    }
+  };
+
+  const handleStartEdit = (task) => {
+    setEditingId(task.id);
+    setEditTask({ ...task });
+  };
+
+  const handleSaveEdit = async (taskId) => {
+    try {
+      await axios.patch(
+        `${apiUrl}/api/tasks/${taskId}/complete`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setEditingId(null);
+      loadTasks();
+    } catch (err) {
+      console.error('Error updating task:', err);
     }
   };
 
@@ -73,77 +94,76 @@ function TasksTab({ token, apiUrl }) {
     }
   };
 
-  const priorityEmoji = { high: '🔴', medium: '🟡', low: '🟢' };
-
   return (
     <div className="tasks-tab">
-      <h2>✅ Task Manager</h2>
+      <h2>✅ Tasks</h2>
 
       {/* Add Task Form */}
       <form className="add-task-form" onSubmit={handleAddTask}>
         <input
           type="text"
-          placeholder="Add a new task..."
-          value={newTask}
-          onChange={(e) => setNewTask(e.target.value)}
+          placeholder="What needs to be done?"
+          value={newTask.text}
+          onChange={(e) => setNewTask({ ...newTask, text: e.target.value })}
           className="task-input"
         />
         <select
-          value={priority}
-          onChange={(e) => setPriority(e.target.value)}
+          value={newTask.priority}
+          onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
           className="priority-select"
         >
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
           <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
         </select>
-        <button type="submit" className="add-btn">
-          Add Task
-        </button>
+        <input
+          type="date"
+          value={newTask.due}
+          onChange={(e) => setNewTask({ ...newTask, due: e.target.value })}
+          className="due-date"
+        />
+        <button type="submit" className="add-btn">Add Task</button>
       </form>
-
-      {/* Filter */}
-      <div className="filter-buttons">
-        <button
-          className={`filter-btn ${filterStatus === 'pending' ? 'active' : ''}`}
-          onClick={() => setFilterStatus('pending')}
-        >
-          Pending
-        </button>
-        <button
-          className={`filter-btn ${filterStatus === 'done' ? 'active' : ''}`}
-          onClick={() => setFilterStatus('done')}
-        >
-          Done
-        </button>
-      </div>
 
       {/* Tasks List */}
       <div className="tasks-list">
         {loading ? (
-          <p>Loading...</p>
+          <p className="loading">Loading tasks...</p>
         ) : tasks.length === 0 ? (
-          <p className="empty">No tasks yet!</p>
+          <p className="empty">No tasks yet. Create one above! 🎯</p>
         ) : (
           tasks.map((task) => (
-            <div key={task.id} className={`task-item ${task.status}`}>
-              <div className="task-left">
-                <button
-                  className="checkbox"
-                  onClick={() => handleCompleteTask(task.id)}
-                >
-                  {task.status === 'done' ? '✅' : '⬜'}
-                </button>
-                <div className="task-content">
-                  <p className="task-text">{task.text}</p>
-                  {task.due && <p className="task-due">Due: {task.due}</p>}
+            <div
+              key={task.id}
+              className={`task-item ${task.status === 'completed' ? 'completed' : ''}`}
+            >
+              <div className="task-content">
+                <input
+                  type="checkbox"
+                  checked={task.status === 'completed'}
+                  onChange={() => handleCompleteTask(task.id)}
+                  className="task-checkbox"
+                />
+                <div className="task-details">
+                  <h4>{task.text}</h4>
+                  <div className="task-meta">
+                    <span className={`priority priority-${task.priority}`}>
+                      {task.priority.toUpperCase()}
+                    </span>
+                    {task.due && (
+                      <span className="due-date-badge">
+                        📅 {new Date(task.due).toLocaleDateString()}
+                      </span>
+                    )}
+                    <span className="status">{task.status}</span>
+                  </div>
                 </div>
               </div>
-              <div className="task-right">
-                <span className="priority-badge">{priorityEmoji[task.priority]}</span>
+              <div className="task-actions">
                 <button
                   className="delete-btn"
                   onClick={() => handleDeleteTask(task.id)}
+                  title="Delete task"
                 >
                   🗑️
                 </button>
