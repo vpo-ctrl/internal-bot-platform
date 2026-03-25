@@ -299,14 +299,14 @@ function authenticateToken(req, res, next) {
 /**
  * GET /api/tasks - List all tasks
  */
-app.get('/api/tasks', authenticateToken, (req, res) => {
+app.get('/api/tasks', authenticateToken, async (req, res) => {
   try {
     const { status, priority } = req.query;
     const filters = {};
     if (status) filters.status = status;
     if (priority) filters.priority = priority;
 
-    const result = taskBot.listTasks(filters);
+    const result = await taskBot.listTasks(filters);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -316,9 +316,9 @@ app.get('/api/tasks', authenticateToken, (req, res) => {
 /**
  * GET /api/tasks/pending - Get pending tasks
  */
-app.get('/api/tasks/pending', authenticateToken, (req, res) => {
+app.get('/api/tasks/pending', authenticateToken, async (req, res) => {
   try {
-    const result = taskBot.getPending();
+    const result = await taskBot.getPending();
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -328,7 +328,7 @@ app.get('/api/tasks/pending', authenticateToken, (req, res) => {
 /**
  * POST /api/tasks - Create a task
  */
-app.post('/api/tasks', authenticateToken, (req, res) => {
+app.post('/api/tasks', authenticateToken, async (req, res) => {
   try {
     const { text, due, priority, tags } = req.body;
 
@@ -336,7 +336,7 @@ app.post('/api/tasks', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Task text required' });
     }
 
-    const result = taskBot.addTask(text, due, priority || 'medium', tags || []);
+    const result = await taskBot.addTask(text, due, priority || 'medium', tags || []);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -346,10 +346,10 @@ app.post('/api/tasks', authenticateToken, (req, res) => {
 /**
  * PATCH /api/tasks/:id/complete - Mark task complete
  */
-app.patch('/api/tasks/:id/complete', authenticateToken, (req, res) => {
+app.patch('/api/tasks/:id/complete', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const result = taskBot.completeTask(id);
+    const result = await taskBot.completeTask(id);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -359,10 +359,10 @@ app.patch('/api/tasks/:id/complete', authenticateToken, (req, res) => {
 /**
  * DELETE /api/tasks/:id - Delete task
  */
-app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
+app.delete('/api/tasks/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const result = taskBot.deleteTask(id);
+    const result = await taskBot.deleteTask(id);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -376,10 +376,10 @@ app.delete('/api/tasks/:id', authenticateToken, (req, res) => {
 /**
  * GET /api/notes - List notes by date
  */
-app.get('/api/notes', authenticateToken, (req, res) => {
+app.get('/api/notes', authenticateToken, async (req, res) => {
   try {
     const { date } = req.query;
-    const result = notesBot.listNotes(date);
+    const result = await notesBot.listNotes(date);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -389,7 +389,7 @@ app.get('/api/notes', authenticateToken, (req, res) => {
 /**
  * GET /api/notes/search - Search notes
  */
-app.get('/api/notes/search', authenticateToken, (req, res) => {
+app.get('/api/notes/search', authenticateToken, async (req, res) => {
   try {
     const { q } = req.query;
 
@@ -397,7 +397,7 @@ app.get('/api/notes/search', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Search query required' });
     }
 
-    const result = notesBot.searchNotes(q);
+    const result = await notesBot.searchNotes(q);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -407,7 +407,7 @@ app.get('/api/notes/search', authenticateToken, (req, res) => {
 /**
  * POST /api/notes - Create note
  */
-app.post('/api/notes', authenticateToken, (req, res) => {
+app.post('/api/notes', authenticateToken, async (req, res) => {
   try {
     const { text, tags } = req.body;
 
@@ -415,7 +415,7 @@ app.post('/api/notes', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Note text required' });
     }
 
-    const result = notesBot.addNote(text, tags || []);
+    const result = await notesBot.addNote(text, tags || []);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -425,10 +425,10 @@ app.post('/api/notes', authenticateToken, (req, res) => {
 /**
  * GET /api/notes/:date/:filename - Get note content
  */
-app.get('/api/notes/:date/:filename', authenticateToken, (req, res) => {
+app.get('/api/notes/:date/:filename', authenticateToken, async (req, res) => {
   try {
     const { date, filename } = req.params;
-    const result = notesBot.getNote(date, filename);
+    const result = await notesBot.getNote(date, filename);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -442,10 +442,10 @@ app.get('/api/notes/:date/:filename', authenticateToken, (req, res) => {
 /**
  * GET /api/calendar - List events
  */
-app.get('/api/calendar', authenticateToken, (req, res) => {
+app.get('/api/calendar', authenticateToken, async (req, res) => {
   try {
     const { from, to } = req.query;
-    const result = calendarBot.listEvents(from, to);
+    const result = await calendarBot.listEvents(from, to);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -455,9 +455,9 @@ app.get('/api/calendar', authenticateToken, (req, res) => {
 /**
  * GET /api/calendar/today - Get today's events
  */
-app.get('/api/calendar/today', authenticateToken, (req, res) => {
+app.get('/api/calendar/today', authenticateToken, async (req, res) => {
   try {
-    const result = calendarBot.getTodayEvents();
+    const result = await calendarBot.getTodayEvents();
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -467,7 +467,7 @@ app.get('/api/calendar/today', authenticateToken, (req, res) => {
 /**
  * POST /api/calendar - Create event
  */
-app.post('/api/calendar', authenticateToken, (req, res) => {
+app.post('/api/calendar', authenticateToken, async (req, res) => {
   try {
     const { title, date, time, duration, attendees, notes } = req.body;
 
@@ -475,7 +475,7 @@ app.post('/api/calendar', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Title and date required' });
     }
 
-    const result = calendarBot.addEvent(
+    const result = await calendarBot.addEvent(
       title,
       date,
       time,
@@ -493,7 +493,7 @@ app.post('/api/calendar', authenticateToken, (req, res) => {
 /**
  * PATCH /api/calendar/:id - Reschedule event
  */
-app.patch('/api/calendar/:id', authenticateToken, (req, res) => {
+app.patch('/api/calendar/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { date, time } = req.body;
@@ -502,7 +502,7 @@ app.patch('/api/calendar/:id', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'New date required' });
     }
 
-    const result = calendarBot.rescheduleEvent(id, date, time);
+    const result = await calendarBot.rescheduleEvent(id, date, time);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -512,10 +512,10 @@ app.patch('/api/calendar/:id', authenticateToken, (req, res) => {
 /**
  * DELETE /api/calendar/:id - Delete event
  */
-app.delete('/api/calendar/:id', authenticateToken, (req, res) => {
+app.delete('/api/calendar/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const result = calendarBot.deleteEvent(id);
+    const result = await calendarBot.deleteEvent(id);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
