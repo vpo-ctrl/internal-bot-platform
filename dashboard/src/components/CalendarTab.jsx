@@ -4,7 +4,8 @@ import '../styles/CalendarTab.css';
 
 function CalendarTab({ token, apiUrl }) {
   const [events, setEvents] = useState([]);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState('month'); // 'week', 'month'
   const [newEvent, setNewEvent] = useState({
     title: '',
     date: new Date().toISOString().split('T')[0],
@@ -14,7 +15,7 @@ function CalendarTab({ token, apiUrl }) {
 
   useEffect(() => {
     loadEvents();
-  }, [currentMonth]);
+  }, []);
 
   const loadEvents = async () => {
     try {
@@ -65,6 +66,48 @@ function CalendarTab({ token, apiUrl }) {
     }
   };
 
+  // Calendar helper functions
+  const getDaysInMonth = (date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const getWeekStart = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    return new Date(d.setDate(diff));
+  };
+
+  const getWeekDays = (date) => {
+    const start = getWeekStart(date);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  };
+
+  const getEventsForDate = (date) => {
+    const dateStr = date.toISOString().split('T')[0];
+    return events.filter(e => e.date === dateStr);
+  };
+
+  const monthDays = Array.from({ length: getDaysInMonth(currentDate) }, (_, i) => 
+    new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1)
+  );
+
+  const firstDayOffset = getFirstDayOfMonth(currentDate);
+  const monthCalendarDays = [
+    ...Array(firstDayOffset).fill(null),
+    ...monthDays
+  ];
+
   const today = new Date().toISOString().split('T')[0];
   const sortedEvents = [...events].sort((a, b) => {
     return new Date(`${a.date}T${a.time || '00:00'}`) - new Date(`${b.date}T${b.time || '00:00'}`);
@@ -99,6 +142,116 @@ function CalendarTab({ token, apiUrl }) {
           Add Event
         </button>
       </form>
+
+      {/* View Toggle */}
+      <div className="view-toggle">
+        <button
+          className={`view-btn ${view === 'week' ? 'active' : ''}`}
+          onClick={() => setView('week')}
+        >
+          📅 Week
+        </button>
+        <button
+          className={`view-btn ${view === 'month' ? 'active' : ''}`}
+          onClick={() => setView('month')}
+        >
+          📆 Month
+        </button>
+      </div>
+
+      {/* Week View */}
+      {view === 'week' && (
+        <div className="week-view">
+          <div className="week-header">
+            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))}>
+              ← Prev
+            </button>
+            <h3>
+              {getWeekStart(currentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(getWeekStart(currentDate).getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </h3>
+            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))}>
+              Next →
+            </button>
+          </div>
+          
+          <div className="week-grid">
+            {getWeekDays(currentDate).map((day) => {
+              const dayEvents = getEventsForDate(day);
+              const isToday = day.toISOString().split('T')[0] === today;
+              
+              return (
+                <div key={day.toISOString()} className={`day-cell ${isToday ? 'today' : ''}`}>
+                  <div className="day-header">
+                    <div className="day-name">
+                      {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                    </div>
+                    <div className="day-date">{day.getDate()}</div>
+                  </div>
+                  <div className="day-events">
+                    {dayEvents.map(e => (
+                      <div key={e.id} className="day-event">
+                        <span className="event-time">{e.time}</span>
+                        <span className="event-title">{e.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Month View */}
+      {view === 'month' && (
+        <div className="month-view">
+          <div className="month-header">
+            <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}>
+              ← Prev
+            </button>
+            <h3>
+              {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            </h3>
+            <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}>
+              Next →
+            </button>
+          </div>
+
+          <div className="month-calendar">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="day-name-header">{day}</div>
+            ))}
+
+            {monthCalendarDays.map((day, idx) => {
+              const dayEvents = day ? getEventsForDate(day) : [];
+              const isToday = day && day.toISOString().split('T')[0] === today;
+              const isCurrentMonth = day && day.getMonth() === currentDate.getMonth();
+
+              return (
+                <div
+                  key={idx}
+                  className={`month-day ${day ? 'has-date' : 'empty'} ${isToday ? 'today' : ''} ${!isCurrentMonth ? 'other-month' : ''}`}
+                >
+                  {day && (
+                    <>
+                      <div className="day-number">{day.getDate()}</div>
+                      <div className="month-day-events">
+                        {dayEvents.slice(0, 2).map(e => (
+                          <div key={e.id} className="month-event" title={e.title}>
+                            {e.time && <span className="event-time">{e.time}</span>}
+                            <span className="event-title">{e.title}</span>
+                          </div>
+                        ))}
+                        {dayEvents.length > 2 && <div className="more-events">+{dayEvents.length - 2}</div>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Events List */}
       <div className="events-list">
