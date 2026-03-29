@@ -159,7 +159,7 @@ class VoiceProcessor {
         title: transcript,
         description: null,
         tags: ['voice'],
-        priority: 'normal',
+        priority: 'medium',
         raw: transcript
       };
     }
@@ -226,13 +226,18 @@ class VoiceProcessor {
    * Create calendar event
    */
   async createEvent(intent, headers) {
+    // If no date was parsed, use today
+    const eventDate = intent.date || new Date().toISOString().split('T')[0];
+    
     const response = await axios.post(
       `${this.apiUrl}/api/calendar`,
       {
         title: intent.title,
-        date: intent.date,
-        time: intent.time,
-        notes: intent.description
+        date: eventDate,
+        time: intent.time || '09:00',
+        duration: 60,
+        attendees: [],
+        notes: intent.description || ''
       },
       { headers }
     );
@@ -253,7 +258,7 @@ class VoiceProcessor {
 
     switch (intent.type) {
       case 'task':
-        return `${emoji} Task created: "${intent.title}"${intent.priority !== 'normal' ? ` [${intent.priority}]` : ''}`;
+        return `${emoji} Task created: "${intent.title}"${intent.priority !== 'medium' ? ` [${intent.priority}]` : ''}`;
       case 'note':
         return `${emoji} Note saved: "${intent.title}"`;
       case 'event':
