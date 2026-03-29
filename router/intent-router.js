@@ -49,7 +49,7 @@ function parseVoiceIntent(transcript) {
   }
 
   // Extract priority
-  let priority = 'normal';
+  let priority = 'medium';
   if (lower.includes('urgent') || lower.includes('asap') || lower.includes('important')) {
     priority = 'high';
   } else if (lower.includes('low') || lower.includes('whenever')) {
@@ -69,26 +69,105 @@ function parseVoiceIntent(transcript) {
     title = title.substring(0, 100) + '...';
   }
 
-  // Extract date (simple patterns)
+  // Extract date (comprehensive patterns)
   let date = null;
-  const datePatterns = {
-    'today': () => new Date().toISOString().split('T')[0],
-    'tomorrow': () => {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      return d.toISOString().split('T')[0];
-    },
-    'next week': () => {
-      const d = new Date();
-      d.setDate(d.getDate() + 7);
-      return d.toISOString().split('T')[0];
-    }
-  };
   
-  for (const [pattern, fn] of Object.entries(datePatterns)) {
-    if (lower.includes(pattern)) {
-      date = fn();
-      break;
+  // Helper function to format date as YYYY-MM-DD
+  const formatDate = (d) => d.toISOString().split('T')[0];
+  
+  // Relative dates
+  if (lower.includes('today')) {
+    date = formatDate(new Date());
+  } else if (lower.includes('tomorrow')) {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    date = formatDate(d);
+  } else if (lower.includes('next week')) {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    date = formatDate(d);
+  } else if (lower.includes('next month')) {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    date = formatDate(d);
+  } else {
+    // Day of week patterns (next Monday, Friday, etc.)
+    const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayMatches = transcript.match(/(?:next\s+)?(\w+day)/i);
+    
+    if (dayMatches) {
+      const dayName = dayMatches[1].toLowerCase();
+      const dayIndex = daysOfWeek.indexOf(dayName);
+      
+      if (dayIndex !== -1) {
+        const d = new Date();
+        const currentDay = d.getDay();
+        let daysUntil = dayIndex - currentDay;
+        
+        // If day is today or in the past, get next week's occurrence
+        if (lower.includes('next') || daysUntil <= 0) {
+          daysUntil += 7;
+        }
+        
+        d.setDate(d.getDate() + daysUntil);
+        date = formatDate(d);
+      }
+    }
+    
+    // Absolute date patterns: March 30, 30/3, 3/30, etc.
+    // Pattern: Month Day (e.g., "March 30", "March 30th")
+    const monthDayMatch = transcript.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?\b/i);
+    if (monthDayMatch) {
+      const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+      const month = monthNames.indexOf(monthDayMatch[1].toLowerCase()) + 1;
+      const day = parseInt(monthDayMatch[2]);
+      const year = new Date().getFullYear();
+      const dateObj = new Date(year, month - 1, day);
+      
+      // If date is in the past this year, try next year
+      if (dateObj < new Date()) {
+        dateObj.setFullYear(year + 1);
+      }
+      
+      date = formatDate(dateObj);
+    }
+    
+    // Pattern: DD/MM or MM/DD or DD.MM or MM.DD
+    if (!date) {
+      const slashMatch = transcript.match(/\b(\d{1,2})[\/.\/](\d{1,2})\b/);
+      if (slashMatch) {
+        let day = parseInt(slashMatch[1]);
+        let month = parseInt(slashMatch[2]);
+        
+        // Guess format: if first number > 12, assume DD/MM
+        if (day > 12) {
+          [day, month] = [month, day];
+        }
+        
+        const year = new Date().getFullYear();
+        const dateObj = new Date(year, month - 1, day);
+        
+        // If date is in the past this year, try next year
+        if (dateObj < new Date()) {
+          dateObj.setFullYear(year + 1);
+        }
+        
+        date = formatDate(dateObj);
+      }
+    }
+    
+    // Pattern: full date YYYY-MM-DD or DD-MM-YYYY
+    if (!date) {
+      const fullMatch = transcript.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b|\b(\d{1,2})-(\d{1,2})-(\d{4})\b/);
+      if (fullMatch) {
+        if (fullMatch[1]) {
+          // YYYY-MM-DD format
+          date = `${fullMatch[1]}-${String(fullMatch[2]).padStart(2, '0')}-${String(fullMatch[3]).padStart(2, '0')}`;
+        } else {
+          // DD-MM-YYYY format
+          date = `${fullMatch[6]}-${String(fullMatch[5]).padStart(2, '0')}-${String(fullMatch[4]).padStart(2, '0')}`;
+        }
+      }
     }
   }
 
