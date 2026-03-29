@@ -21,7 +21,7 @@ class VoiceProcessor {
   constructor(apiUrl, authToken) {
     this.apiUrl = apiUrl || 'http://localhost:3000';
     this.authToken = authToken;
-    this.whisperModel = 'base'; // base, small, medium, large
+    this.whisperModel = 'tiny'; // base, small, medium, large
   }
 
   /**
@@ -111,14 +111,18 @@ class VoiceProcessor {
         throw new Error('Whisper not installed. Run: pip install openai-whisper');
       }
 
-      // Run whisper
+      // Run whisper with environment variable fix
       const { stdout } = await execAsync(
         `whisper "${audioPath}" --model ${this.whisperModel} --output_format txt --output_dir /tmp --quiet 2>/dev/null`,
-        { maxBuffer: 10 * 1024 * 1024 }
+        { 
+          maxBuffer: 10 * 1024 * 1024,
+          env: { ...process.env, KMP_DUPLICATE_LIB_OK: 'TRUE' }
+        }
       );
 
-      // Read transcript
-      const txtFile = audioPath.replace(/\.[^.]+$/, '.txt');
+      // Read transcript (whisper saves to /tmp, not original dir)
+      const baseName = path.basename(audioPath).replace(/\.[^.]+$/, '');
+      const txtFile = `/tmp/${baseName}.txt`;
       const transcript = fs.readFileSync(txtFile, 'utf8').trim();
       fs.unlinkSync(txtFile); // cleanup
 
