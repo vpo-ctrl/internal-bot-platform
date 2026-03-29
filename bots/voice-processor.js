@@ -19,9 +19,9 @@ const intentRouter = require('../router/intent-router.js');
 
 class VoiceProcessor {
   constructor(apiUrl, authToken) {
-    this.apiUrl = apiUrl || 'http://localhost:3000';
+    this.apiUrl = apiUrl || 'https://internal-bot-api.onrender.com';
     this.authToken = authToken;
-    this.whisperModel = 'tiny'; // base, small, medium, large
+    this.whisperModel = 'tiny'; // tiny is faster and uses less memory
   }
 
   /**
@@ -113,7 +113,7 @@ class VoiceProcessor {
 
       // Run whisper with environment variable fix
       const { stdout } = await execAsync(
-        `whisper "${audioPath}" --model ${this.whisperModel} --output_format txt --output_dir /tmp --quiet 2>/dev/null`,
+        `whisper "${audioPath}" --model ${this.whisperModel} --output_format txt --output_dir /tmp 2>/dev/null`,
         { 
           maxBuffer: 10 * 1024 * 1024,
           env: { ...process.env, KMP_DUPLICATE_LIB_OK: 'TRUE' }
