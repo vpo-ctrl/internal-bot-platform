@@ -34,6 +34,7 @@ const { connectDB } = require('../bots/db-connection.js');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const BOT_API_KEY = process.env.BOT_API_KEY || '';
 
 // CORS middleware FIRST (before everything else!)
 app.use((req, res, next) => {
@@ -41,7 +42,7 @@ app.use((req, res, next) => {
   
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Bot-Api-Key');
   res.header('Access-Control-Max-Age', '3600');
   
   log(`✅ CORS headers set`);
@@ -275,6 +276,22 @@ app.get('/api/auth/verify-reset-token', (req, res) => {
  * Authentication middleware
  */
 function authenticateToken(req, res, next) {
+  const botApiKey = req.headers['x-bot-api-key'];
+
+  if (BOT_API_KEY && botApiKey) {
+    if (botApiKey === BOT_API_KEY) {
+      req.user = {
+        username: 'voice-bot',
+        name: 'Voice Bot',
+        authType: 'bot-api-key'
+      };
+      return next();
+    }
+
+    log(`❌ Invalid bot API key`);
+    return res.status(403).json({ error: 'Invalid bot API key' });
+  }
+
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 

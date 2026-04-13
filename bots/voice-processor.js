@@ -18,21 +18,31 @@ const execAsync = promisify(exec);
 const intentRouter = require('../router/intent-router.js');
 
 class VoiceProcessor {
-  constructor(apiUrl, authToken) {
+  constructor(apiUrl, authConfig = null) {
     this.apiUrl = apiUrl || 'https://internal-bot-api.onrender.com';
-    this.authToken = authToken;
-    this.whisperModel = 'tiny'; // tiny is faster and uses less memory
+
+    if (typeof authConfig === 'string' || authConfig === null) {
+      this.authToken = authConfig;
+      this.botApiKey = null;
+      this.whisperModel = 'tiny';
+    } else {
+      this.authToken = authConfig.authToken || null;
+      this.botApiKey = authConfig.botApiKey || null;
+      this.whisperModel = authConfig.whisperModel || 'tiny';
+    }
   }
 
   /**
    * Process voice message: download → transcribe → route → create
    */
   async processVoiceMessage(telegramFileId, telegramBotToken) {
+    let audioPath = null;
+
     try {
       console.log(`🎙️ Processing voice message: ${telegramFileId}`);
 
       // Step 1: Download audio from Telegram
-      const audioPath = await this.downloadAudio(telegramFileId, telegramBotToken);
+      audioPath = await this.downloadAudio(telegramFileId, telegramBotToken);
       console.log(`📥 Audio downloaded: ${audioPath}`);
 
       // Step 2: Transcribe with Whisper
@@ -46,9 +56,6 @@ class VoiceProcessor {
       // Step 4: Create via API
       const result = await this.createFromIntent(intent);
       console.log(`✅ Created: ${JSON.stringify(result)}`);
-
-      // Cleanup
-      fs.unlinkSync(audioPath);
 
       return {
         success: true,
@@ -64,6 +71,14 @@ class VoiceProcessor {
         error: error.message,
         confirmationMessage: `❌ Failed to process voice: ${error.message}`
       };
+    } finally {
+      if (audioPath && fs.existsSync(audioPath)) {
+        try {
+          fs.unlinkSync(audioPath);
+        } catch (cleanupError) {
+          console.warn(`⚠️ Failed to cleanup audio file ${audioPath}: ${cleanupError.message}`);
+        }
+      }
     }
   }
 
@@ -171,9 +186,16 @@ class VoiceProcessor {
   async createFromIntent(intent) {
     try {
       const headers = {
-        'Authorization': `Bearer ${this.authToken}`,
         'Content-Type': 'application/json'
       };
+
+      if (this.botApiKey) {
+        headers['X-Bot-Api-Key'] = this.botApiKey;
+      } else if (this.authToken) {
+        headers['Authorization'] = `Bearer ${this.authToken}`;
+      } else {
+        throw new Error('No API authentication configured');
+      }
 
       switch (intent.type) {
         case 'task':
