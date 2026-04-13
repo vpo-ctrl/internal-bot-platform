@@ -9,6 +9,10 @@ function Dashboard({ token, onLogout }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [todayFocus, setTodayFocus] = useState({
+    tasks: [],
+    events: []
+  });
   const [stats, setStats] = useState({
     pendingTasks: 0,
     todayEvents: 0,
@@ -32,19 +36,42 @@ function Dashboard({ token, onLogout }) {
 
   const loadStats = async () => {
     try {
+      setLoading(true);
+
       const [tasksRes, calendarRes, notesRes] = await Promise.all([
         axios.get(`${API_URL}/api/tasks/pending`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_URL}/api/calendar/today`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${API_URL}/api/notes`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
+      const priorityOrder = { high: 0, medium: 1, low: 2 };
+      const pendingTasks = [...(tasksRes.data.tasks || [])].sort((a, b) => {
+        const priorityDiff = (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99);
+        if (priorityDiff !== 0) return priorityDiff;
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return a.due.localeCompare(b.due);
+      });
+
+      const todayEvents = [...(calendarRes.data.events || [])].sort((a, b) => {
+        return (a.time || '23:59').localeCompare(b.time || '23:59');
+      });
+
       setStats({
-        pendingTasks: tasksRes.data.tasks?.length || 0,
-        todayEvents: calendarRes.data.events?.length || 0,
+        pendingTasks: pendingTasks.length,
+        todayEvents: todayEvents.length,
         totalNotes: notesRes.data.notes?.length || 0
+      });
+
+      setTodayFocus({
+        tasks: pendingTasks.slice(0, 5),
+        events: todayEvents
       });
     } catch (err) {
       console.error('Error loading stats:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,6 +143,70 @@ function Dashboard({ token, onLogout }) {
                   <p className="stat-number">{stats.totalNotes}</p>
                 </div>
               </div>
+            </div>
+
+            <div className="today-focus">
+              <section className="focus-card">
+                <div className="focus-card-header">
+                  <div>
+                    <h3>Today's Agenda</h3>
+                    <p>Meetings and time-based commitments</p>
+                  </div>
+                  <button onClick={() => setActiveTab('calendar')} className="focus-link-btn">
+                    Open Calendar
+                  </button>
+                </div>
+
+                {loading ? (
+                  <p className="focus-empty">Loading today's events...</p>
+                ) : todayFocus.events.length === 0 ? (
+                  <p className="focus-empty">No meetings scheduled for today.</p>
+                ) : (
+                  <div className="focus-list">
+                    {todayFocus.events.map((event) => (
+                      <div key={event.id} className="focus-item">
+                        <div className="focus-time">{event.time || 'Any time'}</div>
+                        <div className="focus-body">
+                          <strong>{event.title}</strong>
+                          {event.notes && <p>{event.notes}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="focus-card">
+                <div className="focus-card-header">
+                  <div>
+                    <h3>Priority Tasks</h3>
+                    <p>What deserves attention next</p>
+                  </div>
+                  <button onClick={() => setActiveTab('tasks')} className="focus-link-btn">
+                    Open Tasks
+                  </button>
+                </div>
+
+                {loading ? (
+                  <p className="focus-empty">Loading pending tasks...</p>
+                ) : todayFocus.tasks.length === 0 ? (
+                  <p className="focus-empty">No pending tasks. Nice. 🎉</p>
+                ) : (
+                  <div className="focus-list">
+                    {todayFocus.tasks.map((task) => (
+                      <div key={task.id} className="focus-item">
+                        <div className={`task-priority-badge priority-${task.priority}`}>
+                          {task.priority}
+                        </div>
+                        <div className="focus-body">
+                          <strong>{task.text}</strong>
+                          <p>{task.due ? `Due ${task.due}` : 'No due date'}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
 
             <div className="quick-actions">
