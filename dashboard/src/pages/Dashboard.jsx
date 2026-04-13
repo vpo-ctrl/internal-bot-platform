@@ -32,15 +32,16 @@ function Dashboard({ token, onLogout }) {
 
   const loadStats = async () => {
     try {
-      const [tasksRes, calendarRes] = await Promise.all([
+      const [tasksRes, calendarRes, notesRes] = await Promise.all([
         axios.get(`${API_URL}/api/tasks/pending`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API_URL}/api/calendar/today`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API_URL}/api/calendar/today`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/api/notes`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       setStats({
         pendingTasks: tasksRes.data.tasks?.length || 0,
         todayEvents: calendarRes.data.events?.length || 0,
-        totalNotes: 0
+        totalNotes: notesRes.data.notes?.length || 0
       });
     } catch (err) {
       console.error('Error loading stats:', err);
@@ -111,7 +112,7 @@ function Dashboard({ token, onLogout }) {
               <div className="stat-card">
                 <div className="stat-icon">📝</div>
                 <div className="stat-content">
-                  <h3>Total Notes</h3>
+                  <h3>Today's Notes</h3>
                   <p className="stat-number">{stats.totalNotes}</p>
                 </div>
               </div>

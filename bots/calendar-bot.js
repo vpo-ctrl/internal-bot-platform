@@ -90,16 +90,26 @@ async function getTodayEvents() {
 /**
  * Reschedule an event
  */
-async function rescheduleEvent(eventId, newDate, newTime = null) {
+async function updateEvent(eventId, updates = {}) {
   try {
     await connectDB();
 
+    const allowedUpdates = {};
+
+    if (typeof updates.title === 'string') allowedUpdates.title = updates.title;
+    if (typeof updates.date === 'string') allowedUpdates.date = updates.date;
+    if (typeof updates.time === 'string' || updates.time === null) allowedUpdates.time = updates.time;
+    if (typeof updates.duration === 'number') allowedUpdates.duration = updates.duration;
+    if (Array.isArray(updates.attendees)) allowedUpdates.attendees = updates.attendees;
+    if (typeof updates.notes === 'string') allowedUpdates.notes = updates.notes;
+
+    if (Object.keys(allowedUpdates).length === 0) {
+      return { success: false, error: 'No valid updates provided' };
+    }
+
     const event = await Event.findOneAndUpdate(
       { id: eventId },
-      { 
-        date: newDate,
-        ...(newTime && { time: newTime })
-      },
+      allowedUpdates,
       { new: true }
     );
 
@@ -108,12 +118,19 @@ async function rescheduleEvent(eventId, newDate, newTime = null) {
       return { success: false, error: 'Event not found' };
     }
 
-    log(`✅ Event rescheduled: "${event.title}" to ${newDate}`);
+    log(`✅ Event updated: "${event.title}"`);
     return { success: true, event };
   } catch (error) {
-    log(`❌ Error rescheduling event: ${error.message}`);
+    log(`❌ Error updating event: ${error.message}`);
     return { success: false, error: error.message };
   }
+}
+
+async function rescheduleEvent(eventId, newDate, newTime = null) {
+  return updateEvent(eventId, {
+    date: newDate,
+    ...(newTime !== null ? { time: newTime } : {})
+  });
 }
 
 /**
@@ -192,6 +209,7 @@ module.exports = {
   addEvent,
   listEvents,
   getTodayEvents,
+  updateEvent,
   rescheduleEvent,
   deleteEvent
 };

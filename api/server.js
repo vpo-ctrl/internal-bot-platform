@@ -435,6 +435,19 @@ app.get('/api/notes/:date/:filename', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/notes/:id - Delete note
+ */
+app.delete('/api/notes/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await notesBot.deleteNote(id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============================================
 // CALENDAR ENDPOINTS
 // ============================================
@@ -496,13 +509,22 @@ app.post('/api/calendar', authenticateToken, async (req, res) => {
 app.patch('/api/calendar/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { date, time } = req.body;
+    const { title, date, time, duration, attendees, notes } = req.body;
 
-    if (!date) {
-      return res.status(400).json({ error: 'New date required' });
+    const updates = {
+      ...(title !== undefined ? { title } : {}),
+      ...(date !== undefined ? { date } : {}),
+      ...(time !== undefined ? { time } : {}),
+      ...(duration !== undefined ? { duration } : {}),
+      ...(attendees !== undefined ? { attendees } : {}),
+      ...(notes !== undefined ? { notes } : {})
+    };
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'At least one field is required' });
     }
 
-    const result = await calendarBot.rescheduleEvent(id, date, time);
+    const result = await calendarBot.updateEvent(id, updates);
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });

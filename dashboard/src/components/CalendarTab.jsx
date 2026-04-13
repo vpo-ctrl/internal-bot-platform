@@ -64,6 +64,7 @@ function CalendarTab({ token, apiUrl }) {
       await axios.patch(
         `${apiUrl}/api/calendar/${eventId}`,
         {
+          title: editEvent.title,
           date: editEvent.date,
           time: editEvent.time
         },
@@ -185,13 +186,21 @@ function CalendarTab({ token, apiUrl }) {
       {view === 'week' && (
         <div className="week-view">
           <div className="week-header">
-            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))}>
+            <button onClick={() => setCurrentDate((prev) => {
+              const next = new Date(prev);
+              next.setDate(next.getDate() - 7);
+              return next;
+            })}>
               ← Prev
             </button>
             <h3>
               {getWeekStart(currentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(getWeekStart(currentDate).getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </h3>
-            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))}>
+            <button onClick={() => setCurrentDate((prev) => {
+              const next = new Date(prev);
+              next.setDate(next.getDate() + 7);
+              return next;
+            })}>
               Next →
             </button>
           </div>

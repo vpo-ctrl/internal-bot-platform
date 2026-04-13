@@ -6,8 +6,6 @@ function TasksTab({ token, apiUrl }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [newTask, setNewTask] = useState({ text: '', priority: 'medium', due: '' });
-  const [editingId, setEditingId] = useState(null);
-  const [editTask, setEditTask] = useState({});
 
   useEffect(() => {
     loadTasks();
@@ -45,25 +43,6 @@ function TasksTab({ token, apiUrl }) {
       loadTasks();
     } catch (err) {
       console.error('Error adding task:', err);
-    }
-  };
-
-  const handleStartEdit = (task) => {
-    setEditingId(task.id);
-    setEditTask({ ...task });
-  };
-
-  const handleSaveEdit = async (taskId) => {
-    try {
-      await axios.patch(
-        `${apiUrl}/api/tasks/${taskId}/complete`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setEditingId(null);
-      loadTasks();
-    } catch (err) {
-      console.error('Error updating task:', err);
     }
   };
 
@@ -135,12 +114,13 @@ function TasksTab({ token, apiUrl }) {
           tasks.map((task) => (
             <div
               key={task.id}
-              className={`task-item ${task.status === 'completed' ? 'completed' : ''}`}
+              className={`task-item ${task.status === 'done' ? 'completed' : ''}`}
             >
               <div className="task-content">
                 <input
                   type="checkbox"
-                  checked={task.status === 'completed'}
+                  checked={task.status === 'done'}
+                  disabled={task.status === 'done'}
                   onChange={() => handleCompleteTask(task.id)}
                   className="task-checkbox"
                 />

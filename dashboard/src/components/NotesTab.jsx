@@ -47,7 +47,7 @@ function NotesTab({ token, apiUrl }) {
         `${apiUrl}/api/notes/search?q=${encodeURIComponent(searchQuery)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setFilteredNotes(response.data.notes || []);
+      setFilteredNotes(response.data.results || []);
     } catch (err) {
       console.error('Error searching notes:', err);
     }
@@ -78,15 +78,10 @@ function NotesTab({ token, apiUrl }) {
   const handleDeleteNote = async (noteId) => {
     if (window.confirm('Delete this note?')) {
       try {
-        // Note: API might not have delete endpoint, check implementation
         await axios.delete(
           `${apiUrl}/api/notes/${noteId}`,
           { headers: { Authorization: `Bearer ${token}` } }
-        ).catch(() => {
-          // Fallback if delete not implemented
-          console.log('Delete not available, reloading instead');
-          loadNotes();
-        });
+        );
         loadNotes();
       } catch (err) {
         console.error('Error deleting note:', err);

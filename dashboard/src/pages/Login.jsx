@@ -11,7 +11,7 @@ function Login({ onLogin }) {
   const [resetEmail, setResetEmail] = useState('');
   const [resetMessage, setResetMessage] = useState('');
 
-  const API_URL = import.meta.env.VITE_API_URL || 'https://internal-bot-api-gbsx.onrender.com';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
   // Debug logging
   React.useEffect(() => {

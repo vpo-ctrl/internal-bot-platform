@@ -105,20 +105,46 @@ async function searchNotes(query) {
 /**
  * Get note content
  */
-async function getNote(noteId) {
+async function getNote(noteIdOrDate, maybeFilename = null) {
   try {
     await connectDB();
 
-    const note = await Note.findOne({ id: noteId });
+    const query = maybeFilename
+      ? { date: noteIdOrDate, filename: maybeFilename }
+      : { id: noteIdOrDate };
+
+    const note = await Note.findOne(query);
 
     if (!note) {
-      log(`⚠️ Note not found: ${noteId}`);
+      log(`⚠️ Note not found: ${JSON.stringify(query)}`);
       return { success: false, error: 'Note not found' };
     }
 
     return { success: true, content: note.text, note };
   } catch (error) {
     log(`❌ Error reading note: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Delete note by ID
+ */
+async function deleteNote(noteId) {
+  try {
+    await connectDB();
+
+    const note = await Note.findOneAndDelete({ id: noteId });
+
+    if (!note) {
+      log(`⚠️ Note not found: ${noteId}`);
+      return { success: false, error: 'Note not found' };
+    }
+
+    log(`✅ Note deleted: ${note.filename}`);
+    return { success: true, note };
+  } catch (error) {
+    log(`❌ Error deleting note: ${error.message}`);
     return { success: false, error: error.message };
   }
 }
@@ -169,5 +195,6 @@ module.exports = {
   addNote,
   listNotes,
   searchNotes,
-  getNote
+  getNote,
+  deleteNote
 };
