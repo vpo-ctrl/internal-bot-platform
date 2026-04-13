@@ -3,6 +3,9 @@ dashboard/node_modules/
 dashboard/dist/
 .env
 .env.*
+!.env.voice-bot.example
 *.log
 temp/
 storage/telegram-poller-state.json
+.voice-runtime/
+.env.voice-bot

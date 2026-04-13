@@ -4,6 +4,14 @@
 
 Run voice processing locally while keeping the existing Render API as the source of truth.
 
+Right now, the recommended working setup is:
+
+- local Telegram poller on the always-on machine
+- local API on the same machine with `BOT_API_KEY` enabled
+- shared MongoDB Atlas as the data store behind both local and Render environments
+
+That means the bot can work immediately, even before the newer bot-auth API changes are deployed to Render.
+
 ## Architecture
 
 1. Telegram bot receives a voice note
@@ -41,10 +49,24 @@ Why:
 
 ```bash
 ./scripts/setup-local-voice-bot.sh
-npm run voice-bot
+cp .env.voice-bot.example .env.voice-bot
+# edit .env.voice-bot
+./scripts/run-local-voice-stack.sh
 ```
+
+The setup script is rootless. It installs a self-contained local runtime under `.voice-runtime/` with:
+
+- Miniforge
+- Python
+- ffmpeg
+- openai-whisper
+
+This avoids requiring `apt` or system-wide Python packages.
 
 ## Notes
 
 - The current bot supports voice messages plus simple `/start`, `/help`, and `/whoami` text commands.
 - `/whoami` is useful for discovering the chat/user IDs you may want to allowlist.
+- On first Whisper use, the selected model is downloaded and cached locally.
+- `run-local-voice-stack.sh` starts both the local API and the Telegram bot together.
+- If you later deploy the new API auth changes to Render, you can switch `API_URL` back to the Render endpoint and run only `./scripts/run-local-voice-bot.sh`.
