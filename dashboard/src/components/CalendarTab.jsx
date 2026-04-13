@@ -132,6 +132,11 @@ function CalendarTab({ token, apiUrl }) {
     ...Array(firstDayOffset).fill(null),
     ...monthDays
   ];
+  const trailingDayOffset = (7 - (monthCalendarDays.length % 7)) % 7;
+  const fullMonthCalendarDays = [
+    ...monthCalendarDays,
+    ...Array(trailingDayOffset).fill(null)
+  ];
 
   const today = new Date().toISOString().split('T')[0];
   const sortedEvents = [...events].sort((a, b) => {
@@ -249,11 +254,14 @@ function CalendarTab({ token, apiUrl }) {
           </div>
 
           <div className="month-calendar">
+            <div className="month-weekdays">
             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
               <div key={day} className="day-name-header">{day}</div>
             ))}
+            </div>
 
-            {monthCalendarDays.map((day, idx) => {
+            <div className="month-days-grid">
+            {fullMonthCalendarDays.map((day, idx) => {
               const dayEvents = day ? getEventsForDate(day) : [];
               const isToday = day && day.toISOString().split('T')[0] === today;
               const isCurrentMonth = day && day.getMonth() === currentDate.getMonth();
@@ -280,6 +288,7 @@ function CalendarTab({ token, apiUrl }) {
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       )}
