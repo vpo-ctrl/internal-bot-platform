@@ -16,6 +16,10 @@ const execAsync = promisify(exec);
 
 // Intent router
 const intentRouter = require('../router/intent-router.js');
+const CONFIG = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '../config/bot-config.json'),
+  'utf8'
+));
 
 class VoiceProcessor {
   constructor(apiUrl, authConfig = null) {
@@ -25,10 +29,12 @@ class VoiceProcessor {
       this.authToken = authConfig;
       this.botApiKey = null;
       this.whisperModel = 'tiny';
+      this.whisperLanguage = process.env.WHISPER_LANGUAGE || CONFIG.whisper?.language || 'he';
     } else {
       this.authToken = authConfig.authToken || null;
       this.botApiKey = authConfig.botApiKey || null;
       this.whisperModel = authConfig.whisperModel || 'tiny';
+      this.whisperLanguage = authConfig.whisperLanguage || process.env.WHISPER_LANGUAGE || CONFIG.whisper?.language || 'he';
     }
   }
 
@@ -128,7 +134,7 @@ class VoiceProcessor {
 
       // Run whisper with environment variable fix
       const { stdout } = await execAsync(
-        `whisper "${audioPath}" --model ${this.whisperModel} --output_format txt --output_dir /tmp 2>/dev/null`,
+        `whisper "${audioPath}" --model ${this.whisperModel} --language ${this.whisperLanguage} --task transcribe --output_format txt --output_dir /tmp 2>/dev/null`,
         { 
           maxBuffer: 10 * 1024 * 1024,
           env: { ...process.env, KMP_DUPLICATE_LIB_OK: 'TRUE' }

@@ -34,7 +34,8 @@ That means the bot can work immediately, even before the newer bot-auth API chan
 - `BOT_API_KEY` (recommended) or `API_AUTH_TOKEN`
 - `TELEGRAM_ALLOWED_CHAT_ID` (recommended)
 - `TELEGRAM_ALLOWED_USER_ID` (recommended)
-- `WHISPER_MODEL` (optional, default: `tiny`)
+- `WHISPER_MODEL` (optional, recommended for Hebrew: `base`)
+- `WHISPER_LANGUAGE` (optional, recommended for Hebrew: `he`)
 
 ## Recommended bot auth model
 

@@ -24,35 +24,76 @@ function log(message) {
   );
 }
 
+function includesAny(text, patterns) {
+  return patterns.some((pattern) => text.includes(pattern));
+}
+
+function formatDate(date) {
+  return date.toISOString().split('T')[0];
+}
+
+const NOTE_KEYWORDS = [
+  'note', 'remember', 'save', 'memo',
+  'הערה', 'פתק', 'רשום', 'תרשום', 'תרשמי', 'תכתוב', 'תכתבי', 'שמור', 'תשמור', 'לזכור'
+];
+
+const EXPLICIT_EVENT_KEYWORDS = [
+  'event', 'schedule', 'meeting', 'calendar', 'appointment',
+  'פגישה', 'פגישת', 'ישיבה', 'זום', 'יומן', 'פגישה עם'
+];
+
+const EVENT_SCHEDULING_CUES = [
+  'היום', 'מחר', 'מחרתיים', 'שבוע הבא', 'חודש הבא', 'בשעה', 'ביום'
+];
+
+const TASK_KEYWORDS = [
+  'task', 'todo', 'buy', 'call', 'follow up', 'need to',
+  'משימה', 'צריך', 'צריכה', 'לעשות', 'לטפל', 'להתקשר', 'לקנות', 'לשלוח', 'לבדוק', 'לעקוב'
+];
+
+const HEBREW_WEEKDAYS = [
+  { patterns: ['יום ראשון', 'ראשון'], index: 0 },
+  { patterns: ['יום שני', 'שני'], index: 1 },
+  { patterns: ['יום שלישי', 'שלישי'], index: 2 },
+  { patterns: ['יום רביעי', 'רביעי'], index: 3 },
+  { patterns: ['יום חמישי', 'חמישי'], index: 4 },
+  { patterns: ['יום שישי', 'שישי'], index: 5 },
+  { patterns: ['שבת', 'יום שבת'], index: 6 }
+];
+
 /**
  * Parse voice intent with full structured output
  */
 function parseVoiceIntent(transcript) {
   const lower = transcript.toLowerCase();
+  const hasNoteKeyword = includesAny(lower, NOTE_KEYWORDS);
+  const hasExplicitEventKeyword = includesAny(lower, EXPLICIT_EVENT_KEYWORDS);
+  const hasTaskKeyword = includesAny(lower, TASK_KEYWORDS);
+  const hasSchedulingCue = includesAny(lower, EVENT_SCHEDULING_CUES) || /\d{1,2}(?:am|pm|:)/i.test(transcript);
   
   // Determine type (task, note, event)
   let type = 'task'; // default
-  if (lower.includes('note') || lower.includes('remember') || lower.includes('save')) {
+  if (hasNoteKeyword) {
     type = 'note';
-  } else if (lower.includes('event') || lower.includes('schedule') || lower.includes('meeting') || lower.includes('tomorrow') || lower.includes('next') || lower.includes('o\'clock') || /\d{1,2}(?:am|pm|:)/i.test(transcript)) {
+  } else if (hasExplicitEventKeyword || (!hasTaskKeyword && hasSchedulingCue)) {
     type = 'event';
-  } else if (lower.includes('task') || lower.includes('todo') || lower.includes('do') || lower.includes('buy') || lower.includes('call')) {
+  } else if (hasTaskKeyword) {
     type = 'task';
   }
 
   // Extract action
   let action = 'create';
-  if (lower.includes('complete') || lower.includes('done') || lower.includes('finished')) {
+  if (lower.includes('complete') || lower.includes('done') || lower.includes('finished') || lower.includes('סיימתי') || lower.includes('בוצע') || lower.includes('הושלם')) {
     action = 'complete';
-  } else if (lower.includes('delete') || lower.includes('remove') || lower.includes('cancel')) {
+  } else if (lower.includes('delete') || lower.includes('remove') || lower.includes('cancel') || lower.includes('מחק') || lower.includes('בטל')) {
     action = 'delete';
   }
 
   // Extract priority
   let priority = 'medium';
-  if (lower.includes('urgent') || lower.includes('asap') || lower.includes('important')) {
+  if (lower.includes('urgent') || lower.includes('asap') || lower.includes('important') || lower.includes('דחוף') || lower.includes('חשוב')) {
     priority = 'high';
-  } else if (lower.includes('low') || lower.includes('whenever')) {
+  } else if (lower.includes('low') || lower.includes('whenever') || lower.includes('לא דחוף') || lower.includes('כשיהיה זמן')) {
     priority = 'low';
   }
 
@@ -61,32 +102,36 @@ function parseVoiceIntent(transcript) {
   if (lower.includes('work') || lower.includes('office')) tags.push('work');
   if (lower.includes('personal') || lower.includes('home')) tags.push('personal');
   if (lower.includes('urgent')) tags.push('urgent');
+  if (lower.includes('עבודה') || lower.includes('משרד')) tags.push('work');
+  if (lower.includes('בית') || lower.includes('אישי')) tags.push('personal');
+  if (lower.includes('דחוף')) tags.push('urgent');
 
   // Extract title (first 50 chars or full text)
-  let title = transcript.replace(/^(task|note|event|remember|schedule|remind me)\s+/i, '').trim();
-  title = title.replace(/^(to|that|about|me)\s+/i, '').trim();
+  let title = transcript.replace(/^(task|note|event|remember|schedule|remind me|הערה|משימה|פגישה|תזכיר לי|תרשום|תרשמי|תכתוב|תכתבי)\s+/i, '').trim();
+  title = title.replace(/^(to|that|about|me|עם)\s+/i, '').trim();
   if (title.length > 100) {
     title = title.substring(0, 100) + '...';
   }
 
   // Extract date (comprehensive patterns)
   let date = null;
-  
-  // Helper function to format date as YYYY-MM-DD
-  const formatDate = (d) => d.toISOString().split('T')[0];
-  
+
   // Relative dates
-  if (lower.includes('today')) {
+  if (lower.includes('today') || lower.includes('היום')) {
     date = formatDate(new Date());
-  } else if (lower.includes('tomorrow')) {
+  } else if (lower.includes('tomorrow') || lower.includes('מחר')) {
     const d = new Date();
     d.setDate(d.getDate() + 1);
     date = formatDate(d);
-  } else if (lower.includes('next week')) {
+  } else if (lower.includes('מחרתיים')) {
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    date = formatDate(d);
+  } else if (lower.includes('next week') || lower.includes('שבוע הבא')) {
     const d = new Date();
     d.setDate(d.getDate() + 7);
     date = formatDate(d);
-  } else if (lower.includes('next month')) {
+  } else if (lower.includes('next month') || lower.includes('חודש הבא')) {
     const d = new Date();
     d.setMonth(d.getMonth() + 1);
     date = formatDate(d);
@@ -109,6 +154,22 @@ function parseVoiceIntent(transcript) {
           daysUntil += 7;
         }
         
+        d.setDate(d.getDate() + daysUntil);
+        date = formatDate(d);
+      }
+    }
+
+    if (!date) {
+      const matchedHebrewDay = HEBREW_WEEKDAYS.find(({ patterns }) => includesAny(lower, patterns));
+      if (matchedHebrewDay) {
+        const d = new Date();
+        const currentDay = d.getDay();
+        let daysUntil = matchedHebrewDay.index - currentDay;
+
+        if (lower.includes('הבא') || daysUntil <= 0) {
+          daysUntil += 7;
+        }
+
         d.setDate(d.getDate() + daysUntil);
         date = formatDate(d);
       }

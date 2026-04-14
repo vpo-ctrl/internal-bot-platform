@@ -24,7 +24,8 @@ class TelegramPoller {
     this.processor = new VoiceProcessor(this.apiUrl, {
       authToken,
       botApiKey,
-      whisperModel: process.env.WHISPER_MODEL || 'tiny'
+      whisperModel: process.env.WHISPER_MODEL,
+      whisperLanguage: process.env.WHISPER_LANGUAGE
     });
   }
 
@@ -173,7 +174,8 @@ class TelegramPoller {
 
     console.log(`🤖 Telegram polling bot started: @${bot.username}`);
     console.log(`🔐 API target: ${this.apiUrl}`);
-    console.log(`🧠 Whisper model: ${process.env.WHISPER_MODEL || 'tiny'}`);
+    console.log(`🧠 Whisper model: ${process.env.WHISPER_MODEL || 'default'}`);
+    console.log(`🈯 Whisper language: ${process.env.WHISPER_LANGUAGE || 'default'}`);
     console.log(`💾 Offset state: ${this.stateFile}`);
 
     while (this.running) {
