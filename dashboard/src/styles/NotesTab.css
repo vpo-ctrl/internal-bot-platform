@@ -3,6 +3,7 @@
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
 
 .notes-tab h2 {
@@ -40,7 +41,7 @@
   border-color: #667eea;
 }
 
-.add-btn {
+.notes-tab .add-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
@@ -52,7 +53,7 @@
   align-self: flex-start;
 }
 
-.add-btn:hover {
+.notes-tab .add-btn:hover {
   transform: translateY(-2px);
 }
 
@@ -136,7 +137,7 @@
   white-space: nowrap;
 }
 
-.delete-btn {
+.notes-tab .delete-btn {
   background: none;
   border: none;
   font-size: 1.2rem;
@@ -146,12 +147,12 @@
   align-self: flex-end;
 }
 
-.delete-btn:hover {
+.notes-tab .delete-btn:hover {
   transform: scale(1.2);
 }
 
-.loading,
-.empty {
+.notes-tab .loading,
+.notes-tab .empty {
   text-align: center;
   color: #999;
   padding: 30px;
@@ -159,7 +160,31 @@
 }
 
 @media (max-width: 768px) {
+  .notes-tab {
+    padding: 20px;
+  }
+
   .notes-list {
     grid-template-columns: 1fr;
+  }
+
+  .notes-tab .add-btn {
+    width: 100%;
+    align-self: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .notes-tab {
+    padding: 16px;
+  }
+
+  .add-note-form,
+  .note-item {
+    padding: 16px;
+  }
+
+  .note-item {
+    min-height: 0;
   }
 }

@@ -3,6 +3,7 @@
   border-radius: 12px;
   padding: 30px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
 }
 
 .calendar-tab h2 {
@@ -45,7 +46,7 @@
   border-color: #667eea;
 }
 
-.add-btn {
+.calendar-tab .add-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
@@ -56,11 +57,10 @@
   transition: transform 0.2s;
 }
 
-.add-btn:hover {
+.calendar-tab .add-btn:hover {
   transform: translateY(-2px);
 }
 
-/* View Toggle */
 .view-toggle {
   display: flex;
   gap: 10px;
@@ -83,24 +83,30 @@
   border-color: #667eea;
 }
 
-/* Week View */
-.week-view {
+.week-view,
+.month-view {
   margin-bottom: 30px;
 }
 
-.week-header {
+.week-header,
+.month-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
-.week-header h3 {
+.week-header h3,
+.month-header h3 {
   margin: 0;
   color: #333;
+  flex: 1;
+  text-align: center;
 }
 
-.week-header button {
+.week-header button,
+.month-header button {
   background: #667eea;
   color: white;
   border: none;
@@ -109,8 +115,15 @@
   cursor: pointer;
 }
 
-.week-header button:hover {
+.week-header button:hover,
+.month-header button:hover {
   background: #764ba2;
+}
+
+.calendar-grid-scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 6px;
 }
 
 .week-grid {
@@ -118,6 +131,7 @@
   grid-template-columns: repeat(7, 1fr);
   gap: 10px;
   margin-bottom: 20px;
+  min-width: 700px;
 }
 
 .day-cell {
@@ -126,6 +140,7 @@
   border-radius: 6px;
   padding: 10px;
   min-height: 150px;
+  min-width: 0;
 }
 
 .day-cell.today {
@@ -166,50 +181,18 @@
   border-radius: 2px;
 }
 
-.event-time {
+.calendar-tab .event-time {
   color: #667eea;
   font-weight: 600;
   margin-right: 5px;
 }
 
-.event-title {
+.calendar-tab .event-title {
   color: #333;
   display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Month View */
-.month-view {
-  margin-bottom: 30px;
-}
-
-.month-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.month-header h3 {
-  margin: 0;
-  color: #333;
-  flex: 1;
-  text-align: center;
-}
-
-.month-header button {
-  background: #667eea;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.month-header button:hover {
-  background: #764ba2;
 }
 
 .month-calendar {
@@ -221,6 +204,7 @@
   padding: 10px;
   border-radius: 6px;
   border: 1px solid #e0e0e0;
+  min-width: 700px;
 }
 
 .month-weekdays,
@@ -297,7 +281,6 @@
   font-weight: bold;
 }
 
-/* Events List */
 .events-list {
   display: flex;
   flex-direction: column;
@@ -357,48 +340,176 @@
 
 .event-content {
   flex: 1;
+  min-width: 0;
 }
 
 .event-content h4 {
   margin: 0 0 8px 0;
   color: #333;
   font-size: 1.05rem;
+  word-break: break-word;
 }
 
-.event-time,
-.event-attendees {
+.calendar-tab .event-time,
+.event-attendees,
+.event-notes {
   margin: 5px 0;
   color: #666;
   font-size: 0.9rem;
 }
 
-.delete-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
+.event-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-form {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.edit-title,
+.edit-date,
+.edit-time {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9def0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.save-btn,
+.cancel-btn,
+.edit-btn,
+.calendar-tab .delete-btn {
+  border: 1px solid #d9def0;
+  background: white;
+  font-size: 0.95rem;
   cursor: pointer;
-  padding: 5px;
-  transition: transform 0.2s;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: transform 0.2s, background 0.2s;
   flex-shrink: 0;
 }
 
-.delete-btn:hover {
-  transform: scale(1.2);
+.edit-btn,
+.calendar-tab .delete-btn {
+  font-size: 1rem;
 }
 
-.empty {
+.save-btn {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.cancel-btn {
+  color: #555;
+}
+
+.save-btn:hover,
+.cancel-btn:hover,
+.edit-btn:hover,
+.calendar-tab .delete-btn:hover {
+  transform: translateY(-1px);
+  background: #f5f7ff;
+}
+
+.save-btn:hover {
+  background: #5562d9;
+}
+
+.calendar-tab .empty {
   text-align: center;
   color: #999;
   padding: 30px;
 }
 
 @media (max-width: 768px) {
+  .calendar-tab {
+    padding: 20px;
+  }
+
   .add-event-form {
     flex-direction: column;
   }
 
+  .event-input,
+  .date-input,
+  .time-input,
+  .calendar-tab .add-btn {
+    width: 100%;
+  }
+
+  .view-toggle {
+    flex-wrap: wrap;
+  }
+
+  .view-btn {
+    flex: 1 1 140px;
+  }
+
+  .week-header,
+  .month-header {
+    flex-wrap: wrap;
+  }
+
+  .week-header h3,
+  .month-header h3 {
+    order: -1;
+    width: 100%;
+    text-align: center;
+  }
+
   .week-grid {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    min-width: 640px;
+  }
+
+  .month-calendar {
+    min-width: 640px;
+  }
+
+  .event-item {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .event-date {
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .event-actions {
+    width: 100%;
+  }
+
+  .edit-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-tab {
+    padding: 16px;
+  }
+
+  .week-header button,
+  .month-header button,
+  .view-btn,
+  .save-btn,
+  .cancel-btn,
+  .edit-btn,
+  .calendar-tab .delete-btn {
+    width: 100%;
+  }
+
+  .week-grid,
+  .month-calendar {
+    min-width: 600px;
   }
 
   .month-calendar {
@@ -421,5 +532,9 @@
 
   .month-event {
     font-size: 0.65rem;
+  }
+
+  .day-cell {
+    min-height: 130px;
   }
 }

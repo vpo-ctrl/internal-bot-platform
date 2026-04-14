@@ -20,6 +20,7 @@
   margin-bottom: 10px;
   font-size: 2rem;
   color: #333;
+  word-break: break-word;
 }
 
 .subtitle {
@@ -42,11 +43,11 @@
 
 .form-group input {
   width: 100%;
+  min-width: 0;
   padding: 12px;
   border: 2px solid #e0e0e0;
   border-radius: 6px;
   font-size: 1rem;
-  transition: border-color 0.3s;
 }
 
 .form-group input:focus {
@@ -135,4 +136,26 @@
   border-radius: 6px;
   margin-bottom: 20px;
   font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 12px;
+    align-items: stretch;
+  }
+
+  .login-box {
+    padding: 24px 18px;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .login-box h1 {
+    font-size: 1.6rem;
+  }
+
+  .subtitle,
+  .login-footer {
+    font-size: 0.82rem;
+  }
 }

@@ -210,30 +210,32 @@ function CalendarTab({ token, apiUrl }) {
             </button>
           </div>
           
-          <div className="week-grid">
-            {getWeekDays(currentDate).map((day) => {
-              const dayEvents = getEventsForDate(day);
-              const isToday = day.toISOString().split('T')[0] === today;
-              
-              return (
-                <div key={day.toISOString()} className={`day-cell ${isToday ? 'today' : ''}`}>
-                  <div className="day-header">
-                    <div className="day-name">
-                      {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                    </div>
-                    <div className="day-date">{day.getDate()}</div>
-                  </div>
-                  <div className="day-events">
-                    {dayEvents.map(e => (
-                      <div key={e.id} className="day-event">
-                        <span className="event-time">{e.time}</span>
-                        <span className="event-title">{e.title}</span>
+          <div className="calendar-grid-scroll">
+            <div className="week-grid">
+              {getWeekDays(currentDate).map((day) => {
+                const dayEvents = getEventsForDate(day);
+                const isToday = day.toISOString().split('T')[0] === today;
+                
+                return (
+                  <div key={day.toISOString()} className={`day-cell ${isToday ? 'today' : ''}`}>
+                    <div className="day-header">
+                      <div className="day-name">
+                        {day.toLocaleDateString('en-US', { weekday: 'short' })}
                       </div>
-                    ))}
+                      <div className="day-date">{day.getDate()}</div>
+                    </div>
+                    <div className="day-events">
+                      {dayEvents.map(e => (
+                        <div key={e.id} className="day-event">
+                          <span className="event-time">{e.time}</span>
+                          <span className="event-title">{e.title}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -253,41 +255,43 @@ function CalendarTab({ token, apiUrl }) {
             </button>
           </div>
 
-          <div className="month-calendar">
-            <div className="month-weekdays">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="day-name-header">{day}</div>
-            ))}
-            </div>
+          <div className="calendar-grid-scroll">
+            <div className="month-calendar">
+              <div className="month-weekdays">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="day-name-header">{day}</div>
+              ))}
+              </div>
 
-            <div className="month-days-grid">
-            {fullMonthCalendarDays.map((day, idx) => {
-              const dayEvents = day ? getEventsForDate(day) : [];
-              const isToday = day && day.toISOString().split('T')[0] === today;
-              const isCurrentMonth = day && day.getMonth() === currentDate.getMonth();
+              <div className="month-days-grid">
+              {fullMonthCalendarDays.map((day, idx) => {
+                const dayEvents = day ? getEventsForDate(day) : [];
+                const isToday = day && day.toISOString().split('T')[0] === today;
+                const isCurrentMonth = day && day.getMonth() === currentDate.getMonth();
 
-              return (
-                <div
-                  key={idx}
-                  className={`month-day ${day ? 'has-date' : 'empty'} ${isToday ? 'today' : ''} ${!isCurrentMonth ? 'other-month' : ''}`}
-                >
-                  {day && (
-                    <>
-                      <div className="day-number">{day.getDate()}</div>
-                      <div className="month-day-events">
-                        {dayEvents.slice(0, 2).map(e => (
-                          <div key={e.id} className="month-event" title={e.title}>
-                            {e.time && <span className="event-time">{e.time}</span>}
-                            <span className="event-title">{e.title}</span>
-                          </div>
-                        ))}
-                        {dayEvents.length > 2 && <div className="more-events">+{dayEvents.length - 2}</div>}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
+                return (
+                  <div
+                    key={idx}
+                    className={`month-day ${day ? 'has-date' : 'empty'} ${isToday ? 'today' : ''} ${!isCurrentMonth ? 'other-month' : ''}`}
+                  >
+                    {day && (
+                      <>
+                        <div className="day-number">{day.getDate()}</div>
+                        <div className="month-day-events">
+                          {dayEvents.slice(0, 2).map(e => (
+                            <div key={e.id} className="month-event" title={e.title}>
+                              {e.time && <span className="event-time">{e.time}</span>}
+                              <span className="event-title">{e.title}</span>
+                            </div>
+                          ))}
+                          {dayEvents.length > 2 && <div className="more-events">+{dayEvents.length - 2}</div>}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              </div>
             </div>
           </div>
         </div>
