@@ -3,11 +3,12 @@
  * Telegram Voice Bot via long polling
  *
  * Purpose: Run locally without a public webhook URL.
- * Flow: Telegram polling -> download voice -> local whisper -> intent router -> API write -> Telegram confirmation.
+ * Flow: Telegram polling -> download voice -> local whisper -> preview -> user chooses Task/Note/Event -> API write.
  */
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const axios = require('axios');
 const VoiceProcessor = require('../bots/voice-processor.js');
 
@@ -33,18 +34,81 @@ class TelegramPoller {
     return `https://api.telegram.org/bot${this.botToken}/${method}`;
   }
 
-  loadOffset() {
+  loadState() {
     try {
       const raw = fs.readFileSync(this.stateFile, 'utf8');
-      return JSON.parse(raw).offset || 0;
+      const parsed = JSON.parse(raw);
+      return {
+        offset: parsed.offset || 0,
+        pendingChoices: parsed.pendingChoices || {},
+        updatedAt: parsed.updatedAt || null
+      };
     } catch {
-      return 0;
+      return {
+        offset: 0,
+        pendingChoices: {},
+        updatedAt: null
+      };
     }
   }
 
-  saveOffset(offset) {
+  saveState(state) {
     fs.mkdirSync(path.dirname(this.stateFile), { recursive: true });
-    fs.writeFileSync(this.stateFile, JSON.stringify({ offset, updatedAt: new Date().toISOString() }, null, 2));
+    fs.writeFileSync(this.stateFile, JSON.stringify({
+      offset: state.offset || 0,
+      pendingChoices: state.pendingChoices || {},
+      updatedAt: new Date().toISOString()
+    }, null, 2));
+  }
+
+  loadOffset() {
+    return this.loadState().offset || 0;
+  }
+
+  saveOffset(offset) {
+    const state = this.loadState();
+    state.offset = offset;
+    this.cleanupPendingChoices(state);
+    this.saveState(state);
+  }
+
+  cleanupPendingChoices(state) {
+    const maxAgeMs = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    for (const [choiceId, payload] of Object.entries(state.pendingChoices || {})) {
+      const createdAt = payload.createdAt ? new Date(payload.createdAt).getTime() : 0;
+      if (!createdAt || now - createdAt > maxAgeMs) {
+        delete state.pendingChoices[choiceId];
+      }
+    }
+  }
+
+  storePendingChoice(payload) {
+    const state = this.loadState();
+    const choiceId = crypto.randomBytes(8).toString('hex');
+    state.pendingChoices[choiceId] = {
+      ...payload,
+      createdAt: new Date().toISOString()
+    };
+    this.cleanupPendingChoices(state);
+    this.saveState(state);
+    return choiceId;
+  }
+
+  getPendingChoice(choiceId) {
+    const state = this.loadState();
+    this.cleanupPendingChoices(state);
+    this.saveState(state);
+    return state.pendingChoices[choiceId] || null;
+  }
+
+  deletePendingChoice(choiceId) {
+    const state = this.loadState();
+    if (state.pendingChoices[choiceId]) {
+      delete state.pendingChoices[choiceId];
+      this.saveState(state);
+    }
   }
 
   async getMe() {
@@ -64,9 +128,9 @@ class TelegramPoller {
     console.log('🔄 Telegram webhook cleared, polling mode enabled');
   }
 
-  isAuthorized(message) {
-    const chatId = String(message.chat.id);
-    const userId = String(message.from.id);
+  isAuthorized(messageLike) {
+    const chatId = String(messageLike.chat.id);
+    const userId = String(messageLike.from.id);
 
     if (this.allowedChatId && chatId !== String(this.allowedChatId)) {
       return false;
@@ -79,11 +143,78 @@ class TelegramPoller {
     return true;
   }
 
-  async sendTelegramMessage(chatId, text) {
-    await axios.post(this.telegramUrl('sendMessage'), {
+  async sendTelegramMessage(chatId, text, extra = {}) {
+    const response = await axios.post(this.telegramUrl('sendMessage'), {
       chat_id: chatId,
       text,
-      parse_mode: 'HTML'
+      parse_mode: 'HTML',
+      ...extra
+    });
+    return response.data.result;
+  }
+
+  async editTelegramMessage(chatId, messageId, text, extra = {}) {
+    await axios.post(this.telegramUrl('editMessageText'), {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      parse_mode: 'HTML',
+      ...extra
+    });
+  }
+
+  async answerCallbackQuery(callbackQueryId, text = null) {
+    await axios.post(this.telegramUrl('answerCallbackQuery'), {
+      callback_query_id: callbackQueryId,
+      ...(text ? { text } : {})
+    });
+  }
+
+  formatIntentPreview(intent) {
+    const labels = {
+      task: 'Task',
+      note: 'Note',
+      event: 'Event'
+    };
+
+    const bits = [`Suggested: <b>${labels[intent.type] || intent.type}</b>`];
+    if (intent.date) bits.push(`Date: <b>${intent.date}</b>`);
+    if (intent.time) bits.push(`Time: <b>${intent.time}</b>`);
+    return bits.join(' • ');
+  }
+
+  async sendChoicePrompt(message, preview) {
+    const choiceId = this.storePendingChoice({
+      chatId: String(message.chat.id),
+      userId: String(message.from.id),
+      transcript: preview.transcript,
+      intent: preview.intent
+    });
+
+    const transcript = preview.transcript.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const text = [
+      '🎙️ I transcribed this voice note:',
+      '',
+      `<i>${transcript}</i>`,
+      '',
+      this.formatIntentPreview(preview.intent),
+      '',
+      'What should I create?'
+    ].join('\n');
+
+    await this.sendTelegramMessage(message.chat.id, text, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '✅ Task', callback_data: `voice_choice:${choiceId}:task` },
+            { text: '📝 Note', callback_data: `voice_choice:${choiceId}:note` },
+            { text: '📅 Event', callback_data: `voice_choice:${choiceId}:event` }
+          ],
+          [
+            { text: '❌ Cancel', callback_data: `voice_choice:${choiceId}:cancel` }
+          ]
+        ]
+      }
     });
   }
 
@@ -94,7 +225,7 @@ class TelegramPoller {
     if (text === '/start' || text === '/help') {
       await this.sendTelegramMessage(
         chatId,
-        '🎙️ Send me a voice note and I will turn it into a note, task, or event.'
+        '🎙️ Send me a voice note and I will transcribe it first, then ask whether it should become a task, note, or event.'
       );
       return;
     }
@@ -109,17 +240,84 @@ class TelegramPoller {
 
     await this.sendTelegramMessage(
       chatId,
-      'Send me a voice note. I currently process voice messages into notes, tasks, or calendar events.'
+      'Send me a voice note. I will transcribe it, show you buttons, and only create the item after you choose Task, Note, or Event.'
     );
   }
 
   async handleVoiceMessage(message) {
-    const result = await this.processor.processVoiceMessage(message.voice.file_id, this.botToken);
-    const reply = result.success
-      ? `${result.confirmationMessage}\n\n📝 ${result.transcript}`
-      : `❌ Failed to process voice message\n\n${result.error}`;
+    const preview = await this.processor.analyzeVoiceMessage(message.voice.file_id, this.botToken);
 
-    await this.sendTelegramMessage(message.chat.id, reply);
+    if (!preview.success) {
+      await this.sendTelegramMessage(
+        message.chat.id,
+        `❌ Failed to process voice message\n\n${preview.error}`
+      );
+      return;
+    }
+
+    await this.sendChoicePrompt(message, preview);
+  }
+
+  async handleCallbackQuery(callbackQuery) {
+    const callbackMessage = callbackQuery.message;
+    const callbackUser = callbackQuery.from;
+    const data = callbackQuery.data || '';
+    const match = data.match(/^voice_choice:([a-f0-9]+):(task|note|event|cancel)$/);
+
+    if (!callbackMessage || !callbackUser || !match) {
+      await this.answerCallbackQuery(callbackQuery.id, 'Unknown action');
+      return;
+    }
+
+    const [, choiceId, selectedType] = match;
+    const payload = this.getPendingChoice(choiceId);
+
+    if (!payload) {
+      await this.answerCallbackQuery(callbackQuery.id, 'This choice expired. Please send a new voice note.');
+      return;
+    }
+
+    if (String(payload.chatId) !== String(callbackMessage.chat.id) || String(payload.userId) !== String(callbackUser.id)) {
+      await this.answerCallbackQuery(callbackQuery.id, 'This choice is not for you.');
+      return;
+    }
+
+    if (selectedType === 'cancel') {
+      this.deletePendingChoice(choiceId);
+      await this.editTelegramMessage(
+        callbackMessage.chat.id,
+        callbackMessage.message_id,
+        '❌ Cancelled. Nothing was created.'
+      );
+      await this.answerCallbackQuery(callbackQuery.id, 'Cancelled');
+      return;
+    }
+
+    const intent = {
+      ...payload.intent,
+      type: selectedType
+    };
+
+    try {
+      const result = await this.processor.createFromIntent(intent);
+      const confirmation = this.processor.generateConfirmation(intent, result);
+      const transcript = payload.transcript.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      this.deletePendingChoice(choiceId);
+
+      await this.editTelegramMessage(
+        callbackMessage.chat.id,
+        callbackMessage.message_id,
+        `${confirmation}\n\n📝 <i>${transcript}</i>`
+      );
+      await this.answerCallbackQuery(callbackQuery.id, `${selectedType} created`);
+    } catch (error) {
+      await this.answerCallbackQuery(callbackQuery.id, 'Failed to create item');
+      await this.sendTelegramMessage(
+        callbackMessage.chat.id,
+        `❌ Failed to create ${selectedType}\n\n${error.message}`
+      );
+    }
   }
 
   async handleMessage(message) {
@@ -150,7 +348,7 @@ class TelegramPoller {
       params: {
         offset,
         timeout: this.pollTimeoutSeconds,
-        allowed_updates: JSON.stringify(['message'])
+        allowed_updates: JSON.stringify(['message', 'callback_query'])
       },
       timeout: (this.pollTimeoutSeconds + 10) * 1000
     });
@@ -158,7 +356,11 @@ class TelegramPoller {
     const updates = response.data.result || [];
     for (const update of updates) {
       try {
-        await this.handleMessage(update.message);
+        if (update.callback_query) {
+          await this.handleCallbackQuery(update.callback_query);
+        } else if (update.message) {
+          await this.handleMessage(update.message);
+        }
       } catch (error) {
         console.error(`❌ Failed to handle update ${update.update_id}: ${error.message}`);
       } finally {

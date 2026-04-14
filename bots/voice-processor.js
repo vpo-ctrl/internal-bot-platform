@@ -39,9 +39,9 @@ class VoiceProcessor {
   }
 
   /**
-   * Process voice message: download → transcribe → route → create
+   * Analyze voice message: download → transcribe → route
    */
-  async processVoiceMessage(telegramFileId, telegramBotToken) {
+  async analyzeVoiceMessage(telegramFileId, telegramBotToken) {
     let audioPath = null;
 
     try {
@@ -59,16 +59,10 @@ class VoiceProcessor {
       const intent = await this.parseIntent(transcript);
       console.log(`🎯 Intent: ${intent.type} — ${intent.action}`);
 
-      // Step 4: Create via API
-      const result = await this.createFromIntent(intent);
-      console.log(`✅ Created: ${JSON.stringify(result)}`);
-
       return {
         success: true,
         transcript,
-        intent,
-        result,
-        confirmationMessage: this.generateConfirmation(intent, result)
+        intent
       };
     } catch (error) {
       console.error(`❌ Voice processing error: ${error.message}`);
@@ -86,6 +80,28 @@ class VoiceProcessor {
         }
       }
     }
+  }
+
+  /**
+   * Process voice message end-to-end: analyze → create
+   */
+  async processVoiceMessage(telegramFileId, telegramBotToken) {
+    const preview = await this.analyzeVoiceMessage(telegramFileId, telegramBotToken);
+
+    if (!preview.success) {
+      return preview;
+    }
+
+    const result = await this.createFromIntent(preview.intent);
+    console.log(`✅ Created: ${JSON.stringify(result)}`);
+
+    return {
+      success: true,
+      transcript: preview.transcript,
+      intent: preview.intent,
+      result,
+      confirmationMessage: this.generateConfirmation(preview.intent, result)
+    };
   }
 
   /**
